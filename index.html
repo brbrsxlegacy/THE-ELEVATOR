@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Elevator</title>
+  <style>
+    :root{
+      --bg:#07080b;
+      --fg:#e9eef6;
+      --muted:#9aa6b2;
+      --panel:#0f1320;
+      --panel2:#131a2c;
+      --accent:#7bd3ff;
+      --danger:#ff5c7a;
+      --ok:#7dffb0;
+      --pixel:4px;
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    .wrap{display:flex; align-items:center; justify-content:center; min-height:100%; padding:16px; box-sizing:border-box;}
+    .frame{
+      width:min(980px, 100%);
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.00));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      overflow:hidden;
+      box-shadow:0 18px 60px rgba(0,0,0,.55);
+    }
+    .topbar{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      padding:10px 14px; background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .title{font-weight:700; letter-spacing:.4px;}
+    .stats{display:flex; gap:14px; font-size:13px; color:var(--muted); align-items:center; flex-wrap:wrap;}
+    .chip{
+      padding:4px 10px; border:1px solid rgba(255,255,255,.10);
+      border-radius:999px; background:rgba(0,0,0,.25);
+    }
+    .chip b{color:var(--fg); font-weight:700;}
+    .content{display:grid; grid-template-columns: 1fr 280px; gap:0; }
+    @media (max-width:880px){ .content{grid-template-columns:1fr;} .side{border-left:0; border-top:1px solid rgba(255,255,255,.08);} }
+    .game{
+      position:relative;
+      background:radial-gradient(1000px 420px at 50% 0%, rgba(123,211,255,.10), transparent 60%),
+                 radial-gradient(900px 600px at 50% 100%, rgba(255,92,122,.06), transparent 55%),
+                 linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      display:flex; align-items:center; justify-content:center;
+      padding:14px;
+    }
+    canvas{
+      width:100%;
+      max-width: 680px;
+      aspect-ratio: 16/9;
+      background: #05060a;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .overlay{
+      position:absolute; inset:14px;
+      pointer-events:none;
+      display:flex; align-items:flex-start; justify-content:flex-end;
+    }
+    .msg{
+      max-width: 520px;
+      font-size:13px;
+      color:var(--fg);
+      background:rgba(15,19,32,.78);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:10px 12px;
+      line-height:1.35;
+      opacity:0;
+      transform: translateY(-6px);
+      transition: .2s ease;
+    }
+    .msg.show{opacity:1; transform:translateY(0);}
+    .side{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border-left:1px solid rgba(255,255,255,.08);
+      padding:14px;
+    }
+    .panel{
+      background:rgba(15,19,32,.65);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .panel h3{margin:0 0 8px; font-size:14px; letter-spacing:.2px;}
+    .panel p{margin:0; font-size:13px; color:var(--muted); line-height:1.35;}
+    .kbd{display:inline-block; padding:2px 6px; border-radius:6px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.25); color:var(--fg); font-size:12px; margin:0 2px;}
+    .log{height:240px; overflow:auto; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cbd5e1;}
+    .log .line{padding:3px 0; border-bottom:1px dashed rgba(255,255,255,.06);}
+    .small{font-size:12px; color:var(--muted); margin-top:8px;}
+    .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+    button{
+      appearance:none; border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.25); color:var(--fg);
+      padding:8px 10px; border-radius:10px; cursor:pointer;
+      font-weight:600; font-size:13px;
+      transition:.15s ease;
+    }
+    button:hover{transform: translateY(-1px); border-color: rgba(123,211,255,.35);}
+    button:active{transform: translateY(0);}
+    .danger{border-color: rgba(255,92,122,.35);}
+    .danger:hover{border-color: rgba(255,92,122,.55);}
+    .hint{color:var(--muted); font-size:12px; margin-top:6px;}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="frame">
+    <div class="topbar">
+      <div class="title">The Elevator</div>
+      <div class="stats">
+        <span class="chip">Kat: <b id="uiFloor">1</b>/100</span>
+        <span class="chip">Can: <b id="uiHP">3</b></span>
+        <span class="chip">Anahtar: <b id="uiKey">0</b></span>
+        <span class="chip">Durum: <b id="uiState">Hazır</b></span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="game">
+        <canvas id="cv" width="960" height="540"></canvas>
+        <div class="overlay">
+          <div id="toast" class="msg"></div>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="panel">
+          <h3>Kontroller</h3>
+          <p>
+            Hareket: <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span><br>
+            Etkileşim: <span class="kbd">W</span> / <span class="kbd">↑</span><br>
+            Saklan (dolap): <span class="kbd">Space</span><br>
+            Asansör: <span class="kbd">Enter</span>
+          </p>
+          <div class="hint">Amaç: 100. kata ulaş.</div>
+        </div>
+
+        <div class="panel">
+          <h3>Kısa Oyun Mantığı</h3>
+          <p>
+            Her katta bir olay olabilir. Bazıları saklanmayı, bazıları hareket etmemeyi ister.
+            Yakalanırsan can kaybedersin. 0 can olursa oyun biter.
+          </p>
+          <div class="btnrow">
+            <button id="btnRestart" class="danger">Yeniden Başlat</button>
+            <button id="btnSkip">Test: +1 Kat</button>
+          </div>
+          <div class="small">Bu demo tek dosyadır. İstersen sonraki adımda görselleri ve canavar çeşitlerini artırırız.</div>
+        </div>
+
+        <div class="panel">
+          <h3>Olay Günlüğü</h3>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* =========================
+     Helpers
+  ========================= */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const randi = (a, b) => Math.floor(rand(a, b + 1));
+  const chance = (p) => Math.random() < p;
+
+  function now() { return performance.now(); }
+
+  /* =========================
+     UI
+  ========================= */
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+
+  const uiFloor = document.getElementById("uiFloor");
+  const uiHP = document.getElementById("uiHP");
+  const uiKey = document.getElementById("uiKey");
+  const uiState = document.getElementById("uiState");
+
+  const toast = document.getElementById("toast");
+  const logEl = document.getElementById("log");
+
+  function logLine(text) {
+    const div = document.createElement("div");
+    div.className = "line";
+    div.textContent = text;
+    logEl.prepend(div);
+    while (logEl.children.length > 120) logEl.removeChild(logEl.lastChild);
+  }
+
+  let toastTimer = 0;
+  function showToast(text, ms = 2200) {
+    toast.textContent = text;
+    toast.classList.add("show");
+    toastTimer = ms;
+  }
+
+  /* =========================
+     Input
+  ========================= */
+  const keys = new Set();
+  const pressed = new Set();
+
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (!keys.has(k)) pressed.add(k);
+    keys.add(k);
+
+    // prevent page scrolling for arrows/space
+    if (["arrowleft","arrowright","arrowup"," ","spacebar"].includes(k) || e.key === " ") e.preventDefault();
+  }, {passive:false});
+
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    keys.delete(k);
+  });
+
+  function isDown(k) { return keys.has(k); }
+  function wasPressed(k) { return pressed.has(k); }
+
+  /* =========================
+     Game Constants
+  ========================= */
+  const W = cv.width, H = cv.height;
+
+  // Scene layout
+  const ROOM = {
+    floorY: 430,
+    leftWall: 90,
+    rightWall: 870,
+    elevatorX: 760,
+    elevatorW: 140,
+    elevatorH: 260,
+    elevatorDoorW: 60,
+    elevatorDoorH: 160,
+    lockerX: 160,
+    lockerW: 70,
+    lockerH: 140,
+    deskX: 420,
+    deskW: 120,
+    deskH: 60
+  };
+
+  // Player
+  const player = {
+    x: 240,
+    y: ROOM.floorY,
+    vx: 0,
+    w: 22,
+    h: 46,
+    speed: 220,
+    hp: 3,
+    keys: 0,
+    hidden: false,
+    frozen: false,
+    face: 1, // 1 right, -1 left
+    invuln: 0
+  };
+
+  const world = {
+    floor: 1,
+    state: "ready", // ready, event, moving, fail, win
+    timeInState: 0,
+    event: null,
+    lights: 1.0, // 0..1
+    shake: 0,
+    ambience: 0
+  };
+
+  /* =========================
+     Pixel Drawing Utilities
+  ========================= */
+  function pxRect(x, y, w, h) {
+    // align to integer for crisp pixels
+    ctx.fillRect(x|0, y|0, w|0, h|0);
+  }
+
+  function drawPixelMan(x, y, scale, skinTone="#4b2f25") {
+    // simple 8-bit style sprite built from rectangles
+    // x,y are bottom center
+    const s = scale;
+    const ox = (x - 6*s)|0;
+    const oy = (y - 16*s)|0;
+
+    // shadow
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = "#000";
+    pxRect(x - 10*s, y - 2*s, 20*s, 4*s);
+    ctx.globalAlpha = 1;
+
+    // legs
+    ctx.fillStyle = "#1b2033";
+    pxRect(ox + 4*s, oy + 12*s, 3*s, 4*s);
+    pxRect(ox + 9*s, oy + 12*s, 3*s, 4*s);
+
+    // shoes
+    ctx.fillStyle = "#0a0d17";
+    pxRect(ox + 3*s, oy + 15*s, 4*s, 2*s);
+    pxRect(ox + 9*s, oy + 15*s, 4*s, 2*s);
+
+    // torso
+    ctx.fillStyle = "#2b6cff";
+    pxRect(ox + 4*s, oy + 7*s, 8*s, 6*s);
+
+    // arms
+    ctx.fillStyle = "#2b6cff";
+    pxRect(ox + 2*s, oy + 8*s, 2*s, 4*s);
+    pxRect(ox + 12*s, oy + 8*s, 2*s, 4*s);
+
+    // hands
+    ctx.fillStyle = skinTone;
+    pxRect(ox + 2*s, oy + 11*s, 2*s, 2*s);
+    pxRect(ox + 12*s, oy + 11*s, 2*s, 2*s);
+
+    // head
+    ctx.fillStyle = skinTone;
+    pxRect(ox + 5*s, oy + 2*s, 6*s, 5*s);
+
+    // hair
+    ctx.fillStyle = "#141014";
+    pxRect(ox + 5*s, oy + 2*s, 6*s, 2*s);
+
+    // eyes
+    ctx.fillStyle = "#e9eef6";
+    pxRect(ox + 6*s, oy + 4*s, 1*s, 1*s);
+    pxRect(ox + 9*s, oy + 4*s, 1*s, 1*s);
+
+    // pupils (direction)
+    ctx.fillStyle = "#0b0d12";
+    const dir = player.face > 0 ? 1 : 0;
+    pxRect(ox + (6+dir)*s, oy + 4*s, 1*s, 1*s);
+    pxRect(ox + (9+dir)*s, oy + 4*s, 1*s, 1*s);
+
+    // mouth
+    ctx.fillStyle = "#0b0d12";
+    pxRect(ox + 7*s, oy + 6*s, 2*s, 1*s);
+  }
+
+  function vignette(intensity) {
+    // soft vignette overlay
+    ctx.save();
+    const g = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, 520);
+    g.addColorStop(0, `rgba(0,0,0,0)`);
+    g.addColorStop(1, `rgba(0,0,0,${clamp(intensity,0,0.85)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  /* =========================
+     Room Objects
+  ========================= */
+  function drawRoom() {
+    // base
+    ctx.fillStyle = "#05060a";
+    ctx.fillRect(0,0,W,H);
+
+    // subtle grid
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = "#9fb3c8";
+    for (let y=0; y<H; y+=24) pxRect(0,y,W,1);
+    for (let x=0; x<W; x+=24) pxRect(x,0,1,H);
+    ctx.globalAlpha = 1;
+
+    // walls/floor
+    ctx.fillStyle = "#0b0e19";
+    pxRect(0, ROOM.floorY, W, H-ROOM.floorY);
+    ctx.fillStyle = "#0a0c14";
+    pxRect(ROOM.leftWall, 70, ROOM.rightWall-ROOM.leftWall, ROOM.floorY-70);
+
+    // pillars
+    ctx.fillStyle = "#070912";
+    pxRect(ROOM.leftWall, 70, 16, ROOM.floorY-70);
+    pxRect(ROOM.rightWall-16, 70, 16, ROOM.floorY-70);
+
+    // elevator frame
+    const ex = ROOM.elevatorX, ey = 140;
+    ctx.fillStyle = "#0f1320";
+    pxRect(ex, ey, ROOM.elevatorW, ROOM.elevatorH);
+    ctx.fillStyle = "#070913";
+    pxRect(ex+8, ey+8, ROOM.elevatorW-16, ROOM.elevatorH-16);
+
+    // elevator doors (open factor)
+    const open = (world.state === "moving") ? clamp(world.timeInState/650,0,1) : 0;
+    const doorGap = 36 * open;
+    ctx.fillStyle = "#141a2c";
+    // left door
+    pxRect(ex+14 - doorGap, ey+46, ROOM.elevatorDoorW, ROOM.elevatorDoorH);
+    // right door
+    pxRect(ex+ROOM.elevatorW-14-ROOM.elevatorDoorW + doorGap, ey+46, ROOM.elevatorDoorW, ROOM.elevatorDoorH);
+
+    // elevator panel
+    ctx.fillStyle = "#0b0f1c";
+    pxRect(ex+ROOM.elevatorW-30, ey+20, 16, 16);
+    ctx.fillStyle = "#7bd3ff";
+    pxRect(ex+ROOM.elevatorW-26, ey+24, 8, 8);
+
+    // locker
+    const lx = ROOM.lockerX, ly = ROOM.floorY - ROOM.lockerH;
+    ctx.fillStyle = "#0f1320";
+    pxRect(lx, ly, ROOM.lockerW, ROOM.lockerH);
+    ctx.fillStyle = "#070913";
+    pxRect(lx+6, ly+6, ROOM.lockerW-12, ROOM.lockerH-12);
+    ctx.fillStyle = "#7dffb0";
+    pxRect(lx+ROOM.lockerW-14, ly+ROOM.lockerH/2, 6, 6);
+
+    // desk / drawer (loot)
+    const dx = ROOM.deskX, dy = ROOM.floorY - ROOM.deskH;
+    ctx.fillStyle = "#0f1320";
+    pxRect(dx, dy, ROOM.deskW, ROOM.deskH);
+    ctx.fillStyle = "#070913";
+    pxRect(dx+6, dy+6, ROOM.deskW-12, ROOM.deskH-12);
+    ctx.fillStyle = "#ffdf7b";
+    pxRect(dx+ROOM.deskW-18, dy+26, 10, 4);
+
+    // floor line
+    ctx.fillStyle = "rgba(255,255,255,.06)";
+    pxRect(ROOM.leftWall, ROOM.floorY, ROOM.rightWall-ROOM.leftWall, 2);
+
+    // signs
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    pxRect(ROOM.leftWall+40, 110, 160, 26);
+    ctx.fillStyle = "rgba(255,255,255,.70)";
+    ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText(`FLOOR ${world.floor}`, ROOM.leftWall+52, 128);
+
+    // interaction hints (faint)
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = "rgba(123,211,255,.55)";
+    ctx.font = "12px system-ui, Arial";
+    ctx.fillText("Asansör (Enter)", ex+18, ey+ROOM.elevatorH-10);
+    ctx.fillText("Dolap (Space)", lx-4, ly-10);
+    ctx.fillText("Çekmece (W)", dx+10, dy-10);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPlayer() {
+    if (player.hidden) return;
+    const scale = 3;
+    const px = player.x;
+    const py = player.y;
+    const skin = "#4b2f25";
+    ctx.save();
+    if (player.invuln > 0 && Math.floor(player.invuln/80)%2===0) ctx.globalAlpha = 0.45;
+    drawPixelMan(px, py, scale, skin);
+    ctx.restore();
+  }
+
+  /* =========================
+     Events (Doors-like)
+  ========================= */
+  const EventType = {
+    NONE: "none",
+    RUSH: "rush",
+    EYES: "eyes",
+    HIDE: "hide",
+    AMBUSH: "ambush"
+  };
+
+  function newEventForFloor(floor) {
+    // more danger as floors increase
+    const t = clamp((floor-1)/99, 0, 1);
+
+    // base chance of having an event this floor
+    const have = chance(0.65 + 0.20*t);
+
+    if (!have) return { type: EventType.NONE };
+
+    // weighted selection
+    const wRush = 0.38 + 0.12*t;
+    const wEyes = 0.28;
+    const wHide = 0.18 + 0.08*t;
+    const wAmb = 0.16 + 0.12*t;
+
+    const sum = wRush + wEyes + wHide + wAmb;
+    let r = Math.random() * sum;
+    if ((r -= wRush) < 0) return mkRush();
+    if ((r -= wEyes) < 0) return mkEyes();
+    if ((r -= wHide) < 0) return mkHide();
+    return mkAmbush();
+  }
+
+  function mkRush() {
+    // A fast entity crosses the hallway. Must hide in locker during pass.
+    return {
+      type: EventType.RUSH,
+      phase: "warn",
+      t: 0,
+      x: -120,
+      speed: 760,
+      warned: false,
+      done: false,
+      name: "Rush",
+      help: "Saklan: dolaba gir (Space)."
+    };
+  }
+
+  function mkEyes() {
+    // Must stop moving and "look away" (don't face the eyes)
+    return {
+      type: EventType.EYES,
+      t: 0,
+      duration: randi(2600, 4200),
+      active: true,
+      name: "Eyes",
+      help: "Hareket etme. Yön değiştirmeyi azalt."
+    };
+  }
+
+  function mkHide() {
+    // If you stay in locker too long, it kicks you out. This event triggers if you hide while not needed.
+    return {
+      type: EventType.HIDE,
+      t: 0,
+      duration: randi(2600, 4200),
+      name: "Hide",
+      help: "Dolapta çok uzun kalma."
+    };
+  }
+
+  function mkAmbush() {
+    // Multiple passes. Must alternate: hide during passes, then step out in quiet.
+    return {
+      type: EventType.AMBUSH,
+      phase: "warn",
+      t: 0,
+      passes: randi(2, 4),
+      passIndex: 0,
+      x: -150,
+      dir: 1,
+      speed: 620,
+      name: "Ambush",
+      help: "Geçişte saklan, durulunca çık."
+    };
+  }
+
+  /* =========================
+     Loot / Interactions
+  ========================= */
+  const loot = {
+    drawerTaken: false
+  };
+
+  function near(x, y, r) {
+    const dx = player.x - x;
+    const dy = player.y - y;
+    return (dx*dx + dy*dy) <= r*r;
+  }
+
+  function tryDrawer() {
+    if (loot.drawerTaken) {
+      showToast("Çekmece boş.");
+      return;
+    }
+    if (!near(ROOM.deskX + ROOM.deskW/2, ROOM.floorY - 10, 80)) {
+      showToast("Çekmeceye yaklaş.");
+      return;
+    }
+    loot.drawerTaken = true;
+    player.keys += 1;
+    logLine("Çekmeceden bir anahtar buldun.");
+    showToast("Anahtar +1");
+  }
+
+  function tryElevator() {
+    if (world.state !== "ready") return;
+    if (!near(ROOM.elevatorX + ROOM.elevatorW/2, ROOM.floorY - 10, 120)) {
+      showToast("Asansöre yaklaş.");
+      return;
+    }
+    // require occasional key
+    const needKey = (world.floor % 10 === 0); // every 10 floors
+    if (needKey && player.keys <= 0) {
+      showToast("Bu katta asansör kilitli. Anahtar gerekli.");
+      logLine("Asansör kilitli: anahtar yok.");
+      return;
+    }
+    if (needKey) {
+      player.keys -= 1;
+      logLine("Anahtar kullandın. Asansör çalışıyor.");
+    } else {
+      logLine("Asansör çalışıyor.");
+    }
+    enterMoving();
+  }
+
+  function toggleHide() {
+    // only if near locker
+    if (!near(ROOM.lockerX + ROOM.lockerW/2, ROOM.floorY - 10, 100)) {
+      showToast("Dolaba yaklaş.");
+      return;
+    }
+    player.hidden = !player.hidden;
+    if (player.hidden) {
+      showToast("Dolaba girdin.");
+      logLine("Dolaba girdin.");
+    } else {
+      showToast("Dolaptan çıktın.");
+      logLine("Dolaptan çıktın.");
+    }
+  }
+
+  /* =========================
+     State Machine
+  ========================= */
+  function enterReady() {
+    world.state = "ready";
+    world.timeInState = 0;
+    world.event = newEventForFloor(world.floor);
+    loot.drawerTaken = false;
+    player.hidden = false;
+    player.frozen = false;
+    world.lights = 1.0;
+    world.shake = 0;
+
+    if (world.event.type !== EventType.NONE) {
+      world.state = "event";
+      world.timeInState = 0;
+      logLine(`Bir şeyler ters gidiyor... Olay: ${world.event.name}`);
+      showToast(`Olay: ${world.event.name}. ${world.event.help}`);
+    } else {
+      logLine("Bu kat sakin görünüyor.");
+      showToast("Kat sakin. İpucu: Çekmeceyi kontrol et.");
+    }
+    syncUI();
+  }
+
+  function enterMoving() {
+    world.state = "moving";
+    world.timeInState = 0;
+    world.event = null;
+    world.shake = 0.6;
+    world.lights = 0.9;
+    showToast("Asansör hareket ediyor...");
+    syncUI();
+  }
+
+  function enterFail(reason) {
+    world.state = "fail";
+    world.timeInState = 0;
+    logLine("Kaybettin: " + reason);
+    showToast("Kaybettin: " + reason, 3500);
+    syncUI();
+  }
+
+  function enterWin() {
+    world.state = "win";
+    world.timeInState = 0;
+    logLine("100. kata ulaştın. Kapı açıldı.");
+    showToast("Kazandın. 100. kat.", 4000);
+    syncUI();
+  }
+
+  function damage(reason) {
+    if (player.invuln > 0) return;
+    player.hp -= 1;
+    player.invuln = 1200;
+    world.shake = 1.0;
+    world.lights = 0.65;
+    logLine("Hasar aldın: " + reason);
+    showToast("Hasar: " + reason);
+    if (player.hp <= 0) {
+      enterFail(reason);
+    }
+    syncUI();
+  }
+
+  /* =========================
+     Event Updates / Draw
+  ========================= */
+  function updateEvent(dt) {
+    const e = world.event;
+    if (!e) return;
+
+    if (e.type === EventType.RUSH) {
+      e.t += dt;
+
+      // warn phase
+      if (e.phase === "warn") {
+        world.lights = lerp(world.lights, 0.75, 0.04);
+        if (!e.warned) {
+          e.warned = true;
+          // short delay then pass
+        }
+        if (e.t > 900) {
+          e.phase = "pass";
+          e.t = 0;
+          e.x = -180;
+          world.shake = 0.35;
+        }
+      } else if (e.phase === "pass") {
+        world.lights = lerp(world.lights, 0.6, 0.06);
+        e.x += e.speed * (dt/1000);
+        world.shake = lerp(world.shake, 0.8, 0.06);
+
+        // if entity overlaps player line-of-travel and not hidden -> damage
+        const hitZone = {x: e.x, y: 250, w: 220, h: 120};
+        const px = player.x - 10, py = player.y - 46;
+        const ph = 46, pw = 20;
+        const overlap = !(px+pw < hitZone.x || px > hitZone.x+hitZone.w || py+ph < hitZone.y || py > hitZone.y+hitZone.h);
+
+        if (overlap && !player.hidden) damage("Rush yakaladı.");
+
+        if (e.x > W + 240) {
+          e.phase = "done";
+          e.t = 0;
+          e.done = true;
+          world.lights = 1.0;
+          world.shake = 0;
+          logLine("Olay bitti: Rush geçti.");
+          showToast("Rush geçti.");
+        }
+      } else if (e.phase === "done") {
+        // after event, go back to ready
+        if (e.t > 450) { world.event = null; world.state = "ready"; }
+        e.t += dt;
+      }
+    }
+
+    if (e.type === EventType.EYES) {
+      e.t += dt;
+      world.lights = lerp(world.lights, 0.72, 0.05);
+
+      // if player moves -> damage
+      const moving = Math.abs(player.vx) > 1;
+      // also if facing "wrong" too often (simulates looking)
+      if (moving) damage("Eyes hareketini duydu.");
+
+      if (e.t > e.duration) {
+        logLine("Olay bitti: Eyes kayboldu.");
+        showToast("Eyes kayboldu.");
+        world.event = null;
+        world.state = "ready";
+        world.lights = 1.0;
+      }
+    }
+
+    if (e.type === EventType.HIDE) {
+      e.t += dt;
+      world.lights = lerp(world.lights, 0.82, 0.05);
+
+      // if player stays hidden too long during this event -> forced out (and minor penalty)
+      if (player.hidden && e.t > e.duration * 0.65) {
+        player.hidden = false;
+        damage("Dolap seni dışarı itti.");
+        logLine("Dolap seni dışarı itti.");
+      }
+
+      if (e.t > e.duration) {
+        logLine("Olay bitti: Ortam normale döndü.");
+        showToast("Ortam normale döndü.");
+        world.event = null;
+        world.state = "ready";
+        world.lights = 1.0;
+      }
+    }
+
+    if (e.type === EventType.AMBUSH) {
+      e.t += dt;
+
+      if (e.phase === "warn") {
+        world.lights = lerp(world.lights, 0.7, 0.05);
+        if (e.t > 900) {
+          e.phase = "pass";
+          e.t = 0;
+          e.x = (e.dir > 0) ? -200 : (W + 200);
+          world.shake = 0.45;
+        }
+      } else if (e.phase === "pass") {
+        world.lights = lerp(world.lights, 0.55, 0.06);
+        e.x += e.dir * e.speed * (dt/1000);
+        world.shake = lerp(world.shake, 0.85, 0.06);
+
+        // hit check
+        const hitZone = {x: e.x, y: 250, w: 240, h: 140};
+        const px = player.x - 10, py = player.y - 46;
+        const ph = 46, pw = 20;
+        const overlap = !(px+pw < hitZone.x || px > hitZone.x+hitZone.w || py+ph < hitZone.y || py > hitZone.y+hitZone.h);
+        if (overlap && !player.hidden) damage("Ambush yakaladı.");
+
+        const outRight = e.x > W + 260;
+        const outLeft = e.x < -260;
+        if (outRight || outLeft) {
+          e.phase = "quiet";
+          e.t = 0;
+          world.shake = 0.1;
+          world.lights = 0.8;
+          // flip direction for next pass
+          e.dir *= -1;
+          e.passIndex += 1;
+          logLine(`Ambush geçişi ${e.passIndex}/${e.passes} bitti.`);
+          showToast("Sessizlik... kısa sürer.");
+        }
+      } else if (e.phase === "quiet") {
+        world.lights = lerp(world.lights, 0.88, 0.05);
+        // if player stays hidden all the time -> mild penalty sometimes
+        if (player.hidden && chance(0.0025 * dt)) {
+          damage("Çok uzun saklandın.");
+        }
+        if (e.t > 850) {
+          if (e.passIndex >= e.passes) {
+            e.phase = "done";
+            e.t = 0;
+            world.lights = 1.0;
+            world.shake = 0;
+            logLine("Olay bitti: Ambush çekildi.");
+            showToast("Ambush çekildi.");
+          } else {
+            e.phase = "pass";
+            e.t = 0;
+            e.x = (e.dir > 0) ? -200 : (W + 200);
+            world.shake = 0.5;
+          }
+        }
+      } else if (e.phase === "done") {
+        if (e.t > 450) { world.event = null; world.state = "ready"; }
+      }
+    }
+  }
+
+  function drawEvent() {
+    const e = world.event;
+    if (!e) return;
+
+    if (e.type === EventType.RUSH) {
+      if (e.phase === "pass") drawEntityBlob(e.x, 320, 220, 110, "#ff5c7a");
+      if (e.phase === "warn") drawWarningStripes(0.22);
+    }
+
+    if (e.type === EventType.EYES) {
+      drawEyes();
+    }
+
+    if (e.type === EventType.HIDE) {
+      drawWarningStripes(0.14);
+      drawTextCenter("Bir şey dolapları sevmiyor.", 120);
+    }
+
+    if (e.type === EventType.AMBUSH) {
+      if (e.phase === "pass") drawEntityBlob(e.x, 325, 240, 120, "#ff5c7a");
+      if (e.phase === "warn") drawWarningStripes(0.26);
+      if (e.phase === "quiet") drawTextCenter("Sessizlik. Şimdi hareket et.", 120);
+    }
+  }
+
+  function drawEntityBlob(x, y, w, h, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    // pseudo-pixel blob made of blocks
+    const step = 18;
+    for (let yy = -h/2; yy <= h/2; yy += step) {
+      for (let xx = -w/2; xx <= w/2; xx += step) {
+        const d = (xx*xx)/(w*w) + (yy*yy)/(h*h);
+        if (d < 0.20 + Math.random()*0.28) {
+          pxRect(x + xx, y + yy, step-2, step-2);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    // eyes on blob
+    ctx.fillStyle = "#e9eef6";
+    pxRect((x + 12)|0, (y - 10)|0, 10, 6);
+    pxRect((x + 34)|0, (y - 10)|0, 10, 6);
+    ctx.fillStyle = "#0b0d12";
+    pxRect((x + 16)|0, (y - 8)|0, 4, 4);
+    pxRect((x + 38)|0, (y - 8)|0, 4, 4);
+    ctx.restore();
+  }
+
+  function drawEyes() {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    // eyes appear above center
+    const ex = W/2, ey = 160;
+    ctx.fillStyle = "rgba(255,255,255,.80)";
+    pxRect(ex-90, ey-20, 70, 28);
+    pxRect(ex+20, ey-20, 70, 28);
+    ctx.fillStyle = "rgba(0,0,0,.85)";
+    // pupil depends on facing
+    const p = player.face > 0 ? 10 : -10;
+    pxRect(ex-60 + p, ey-10, 16, 16);
+    pxRect(ex+50 + p, ey-10, 16, 16);
+    ctx.globalAlpha = 1;
+    drawTextCenter("Dur. Kıpırdama.", 110);
+    ctx.restore();
+  }
+
+  function drawWarningStripes(alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#ff5c7a";
+    for (let i=-200; i<W+200; i+=38) {
+      ctx.beginPath();
+      ctx.moveTo(i,0);
+      ctx.lineTo(i+18,0);
+      ctx.lineTo(i+220,H);
+      ctx.lineTo(i+202,H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawTextCenter(text, y) {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(15,19,32,.75)";
+    const pad = 10;
+    ctx.font = "16px ui-monospace, Menlo, Consolas, monospace";
+    const w = ctx.measureText(text).width;
+    pxRect((W-w)/2 - pad, y-22, w + pad*2, 30);
+    ctx.fillStyle = "rgba(255,255,255,.92)";
+    ctx.fillText(text, (W-w)/2, y);
+    ctx.restore();
+  }
+
+  /* =========================
+     Update / Draw Loop
+  ========================= */
+  let last = now();
+
+  function tick() {
+    const t = now();
+    const dt = Math.min(33, t - last);
+    last = t;
+
+    update(dt);
+    render(dt);
+
+    pressed.clear();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    if (toastTimer > 0) {
+      toastTimer -= dt;
+      if (toastTimer <= 0) toast.classList.remove("show");
+    }
+
+    if (player.invuln > 0) player.invuln -= dt;
+
+    // handle state
+    world.timeInState += dt;
+
+    if (world.state === "fail" || world.state === "win") {
+      // no movement, but allow restart
+      player.vx = 0;
+      return;
+    }
+
+    // movement (blocked if hidden or frozen)
+    let ax = 0;
+    if (!player.hidden && !player.frozen) {
+      if (isDown("a") || isDown("arrowleft")) ax -= 1;
+      if (isDown("d") || isDown("arrowright")) ax += 1;
+    }
+
+    const speed = player.speed;
+    player.vx = ax * speed;
+    if (player.vx !== 0) player.face = (player.vx > 0) ? 1 : -1;
+
+    player.x += player.vx * (dt/1000);
+    player.x = clamp(player.x, ROOM.leftWall + 18, ROOM.rightWall - 18);
+
+    // interactions
+    if (wasPressed("w") || wasPressed("arrowup")) tryDrawer();
+    if (wasPressed(" ") || wasPressed("spacebar")) toggleHide();
+    if (wasPressed("enter")) tryElevator();
+
+    // update events if in event state
+    if (world.state === "event") {
+      updateEvent(dt);
+    } else if (world.state === "ready") {
+      // ambient flicker sometimes
+      if (chance(0.0008 * dt)) world.lights = rand(0.85, 1.0);
+      world.lights = lerp(world.lights, 1.0, 0.02);
+      world.shake = lerp(world.shake, 0, 0.03);
+    } else if (world.state === "moving") {
+      // transition to next floor
+      if (world.timeInState > 1200) {
+        world.floor += 1;
+        if (world.floor >= 100) {
+          world.floor = 100;
+          enterWin();
+        } else {
+          logLine(`Asansör durdu. Kat ${world.floor}.`);
+          showToast(`Kat ${world.floor}.`);
+          enterReady();
+        }
+      }
+      world.lights = lerp(world.lights, 0.85, 0.03);
+      world.shake = lerp(world.shake, 0.35, 0.04);
+    }
+
+    syncUI();
+  }
+
+  function render(dt) {
+    // screen shake
+    const sx = (Math.random()*2-1) * (world.shake*8);
+    const sy = (Math.random()*2-1) * (world.shake*5);
+
+    ctx.save();
+    ctx.translate(sx, sy);
+
+    drawRoom();
+    drawEvent();
+    drawPlayer();
+
+    // locker silhouette if hidden
+    if (player.hidden) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "rgba(0,0,0,.50)";
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
+      drawTextCenter("Dolaptasın. Sessiz kal.", 120);
+      ctx.restore();
+    }
+
+    // lighting overlay
+    ctx.save();
+    const dark = clamp(1 - world.lights, 0, 0.85);
+    ctx.fillStyle = `rgba(0,0,0,${dark})`;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    vignette(0.35 + (1-world.lights)*0.4);
+
+    // HUD inside canvas
+    drawCanvasHUD();
+
+    ctx.restore();
+
+    // state banner
+    if (world.state === "fail") drawBanner("OYUN BİTTİ", "Yeniden başlatmak için sağdaki butona tıkla.");
+    if (world.state === "win") drawBanner("KAZANDIN", "100. kata ulaştın. Devamını sonraki adımda ekleyebiliriz.");
+  }
+
+  function drawCanvasHUD() {
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "rgba(15,19,32,.55)";
+    pxRect(16, 16, 280, 64);
+
+    ctx.fillStyle = "rgba(255,255,255,.92)";
+    ctx.font = "14px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText(`FLOOR ${world.floor}/100`, 28, 40);
+
+    ctx.fillStyle = "rgba(255,255,255,.70)";
+    ctx.font = "12px system-ui, Arial";
+    ctx.fillText(`HP: ${player.hp}  KEY: ${player.keys}`, 28, 60);
+
+    // tips line
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(123,211,255,.85)";
+    const tip = (world.state === "event" && world.event) ? `${world.event.name}: ${world.event.help}` : "Enter: Asansör  Space: Dolap  W: Çekmece";
+    ctx.font = "12px system-ui, Arial";
+    ctx.fillText(tip, 320, 34);
+    ctx.restore();
+  }
+
+  function drawBanner(title, subtitle) {
+    // Draw on top of canvas (no shake)
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(0,0,0,.62)";
+    ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(15,19,32,.85)";
+    const bw = 640, bh = 180;
+    pxRect((W-bw)/2, (H-bh)/2, bw, bh);
+    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    ctx.strokeRect((W-bw)/2, (H-bh)/2, bw, bh);
+
+    ctx.fillStyle = "rgba(255,255,255,.92)";
+    ctx.font = "28px ui-monospace, Menlo, Consolas, monospace";
+    const tw = ctx.measureText(title).width;
+    ctx.fillText(title, (W-tw)/2, H/2 - 20);
+
+    ctx.fillStyle = "rgba(255,255,255,.70)";
+    ctx.font = "14px system-ui, Arial";
+    const sw = ctx.measureText(subtitle).width;
+    ctx.fillText(subtitle, (W-sw)/2, H/2 + 18);
+    ctx.restore();
+  }
+
+  function syncUI() {
+    uiFloor.textContent = String(world.floor);
+    uiHP.textContent = String(player.hp);
+    uiKey.textContent = String(player.keys);
+    uiState.textContent = (world.state === "event") ? "Olay" :
+                          (world.state === "ready") ? "Hazır" :
+                          (world.state === "moving") ? "Hareket" :
+                          (world.state === "fail") ? "Bitti" : "Kazandı";
+  }
+
+  /* =========================
+     Buttons
+  ========================= */
+  document.getElementById("btnRestart").addEventListener("click", () => restart());
+  document.getElementById("btnSkip").addEventListener("click", () => {
+    if (world.state === "fail" || world.state === "win") return;
+    world.floor = clamp(world.floor + 1, 1, 100);
+    logLine(`Test: Kat ${world.floor}`);
+    enterReady();
+  });
+
+  /* =========================
+     Restart
+  ========================= */
+  function restart() {
+    player.x = 240;
+    player.vx = 0;
+    player.hp = 3;
+    player.keys = 0;
+    player.hidden = false;
+    player.frozen = false;
+    player.face = 1;
+    player.invuln = 0;
+
+    world.floor = 1;
+    world.state = "ready";
+    world.timeInState = 0;
+    world.event = null;
+    world.lights = 1.0;
+    world.shake = 0;
+
+    logEl.innerHTML = "";
+    logLine("Oyun başladı.");
+    showToast("Başladı. Amaç: 100. kat.");
+    enterReady();
+  }
+
+  /* =========================
+     Start
+  ========================= */
+  restart();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
