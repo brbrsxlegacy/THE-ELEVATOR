@@ -12,29 +12,15 @@
       --glass: rgba(18, 24, 44, .72);
       --glass2: rgba(10, 14, 26, .78);
       --line: rgba(255,255,255,.10);
-      --line2: rgba(255,255,255,.16);
-      --good:#68ffb1;
-      --bad:#ff4f7b;
-      --blue:#6ad7ff;
-      --yellow:#ffe37b;
     }
     *{box-sizing:border-box}
     html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-    #app{height:100%; width:100%; overflow:hidden;}
-    canvas{
-      width:100vw; height:100vh;
-      display:block;
-      background:#02030a;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
+    canvas{width:100vw; height:100vh; display:block; image-rendering:pixelated; image-rendering:crisp-edges; background:#02030a;}
 
     .hud{
       position:fixed; left:14px; top:14px;
       display:flex; gap:10px; flex-wrap:wrap;
-      z-index:20;
-      user-select:none;
-      pointer-events:none;
+      z-index:20; user-select:none; pointer-events:none;
     }
     .chip{
       background:var(--glass);
@@ -46,6 +32,7 @@
       backdrop-filter: blur(10px);
     }
     .chip b{font-weight:800; color:var(--fg)}
+
     .toast{
       position:fixed; right:14px; top:14px;
       max-width:min(560px, calc(100vw - 28px));
@@ -61,8 +48,8 @@
       transition:.18s ease;
       user-select:none;
       pointer-events:none;
-      backdrop-filter: blur(10px);
       white-space:pre-line;
+      backdrop-filter: blur(10px);
     }
     .toast.show{opacity:1; transform:translateY(0);}
 
@@ -77,8 +64,8 @@
         linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.65));
     }
     .card{
-      width:min(760px, calc(100vw - 28px));
-      background:rgba(10, 14, 26, .82);
+      width:min(780px, calc(100vw - 28px));
+      background:rgba(10, 14, 26, .84);
       border:1px solid rgba(255,255,255,.14);
       border-radius:18px;
       padding:18px;
@@ -86,16 +73,9 @@
       backdrop-filter: blur(12px);
     }
     .row{display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
-    .title{
-      font-size:26px; font-weight:900; letter-spacing:.6px;
-    }
+    .title{font-size:26px; font-weight:900; letter-spacing:.6px;}
     .sub{color:var(--muted); margin-top:6px; font-size:14px; line-height:1.45;}
-    .grid{
-      display:grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap:14px;
-      margin-top:14px;
-    }
+    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; margin-top:14px;}
     @media (max-width:860px){ .grid{grid-template-columns:1fr;} }
     .panel{
       border:1px solid rgba(255,255,255,.10);
@@ -116,7 +96,7 @@
       margin:0 2px;
       font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
     button{
       appearance:none;
       border:1px solid rgba(255,255,255,.14);
@@ -133,68 +113,58 @@
     button:active{transform: translateY(0);}
     .danger{border-color: rgba(255,79,123,.34);}
     .danger:hover{border-color: rgba(255,79,123,.55);}
-    .small{margin-top:10px; color:var(--muted); font-size:12px; line-height:1.45;}
     .hide{display:none!important;}
+    .small{margin-top:10px; color:var(--muted); font-size:12px; line-height:1.45;}
   </style>
 </head>
 <body>
-<div id="app">
-  <canvas id="cv" width="1280" height="720"></canvas>
+<canvas id="cv"></canvas>
 
-  <div class="hud" id="hud">
-    <div class="chip">Kat: <b id="uiFloor">1</b>/100</div>
-    <div class="chip">Can: <b id="uiHP">3</b></div>
-    <div class="chip">Anahtar: <b id="uiKey">0</b></div>
-    <div class="chip">Olay: <b id="uiEvent">Yok</b></div>
-    <div class="chip">Canavar: <b id="uiMonster">-</b></div>
-  </div>
+<div class="hud" id="hud">
+  <div class="chip">Kat: <b id="uiFloor">1</b>/100</div>
+  <div class="chip">Can: <b id="uiHP">3</b></div>
+  <div class="chip">Anahtar: <b id="uiKey">0</b></div>
+  <div class="chip">Görev: <b id="uiGoal">-</b></div>
+  <div class="chip">Canavar: <b id="uiMonster">-</b></div>
+</div>
 
-  <div class="toast" id="toast"></div>
+<div class="toast" id="toast"></div>
 
-  <div class="menu" id="menu">
-    <div class="card">
-      <div class="row">
-        <div>
-          <div class="title">The Elevator</div>
-          <div class="sub">
-            2D pikselli asansör kaçış oyunu. 100. kata ulaş.<br>
-            Her kat farklı ölçüde, her olay farklı canavar adıyla gelir.
-          </div>
-        </div>
-        <div class="btns">
-          <button id="btnStart">Başlat</button>
-          <button id="btnHow">Kontroller</button>
-          <button id="btnRestart" class="danger">Sıfırla</button>
+<div class="menu" id="menu">
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="title">The Elevator</div>
+        <div class="sub">
+          2D pikselli asansör kaçış oyunu. 100. kata ulaş.<br>
+          Her katta farklı hedef, canavarlar görünür.
         </div>
       </div>
-
-      <div class="grid" id="howPanel" class="hide">
-        <div class="panel">
-          <h3>Kontroller</h3>
-          <p>
-            Hareket: <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span><br>
-            Etkileşim: <span class="kbd">W</span> / <span class="kbd">↑</span><br>
-            Saklan (dolap): <span class="kbd">Space</span><br>
-            Asansör: <span class="kbd">Enter</span><br>
-            Menü: <span class="kbd">Esc</span>
-          </p>
-          <div class="small">
-            Her 10 katta bir asansör kilidi olabilir. Çekmeceden anahtar çıkar.
-          </div>
-        </div>
-        <div class="panel">
-          <h3>Olay Tipleri</h3>
-          <p>
-            Geçiş: saklanman gerekir.<br>
-            Bakış: hareket etme, yön değiştirmeyi azalt.<br>
-            Dolap: dolapta fazla kalırsan dışarı atar.<br>
-            Dalga: birden fazla geçiş olur, aralarda çık.
-          </p>
-        </div>
+      <div class="btns">
+        <button id="btnStart">Başlat</button>
+        <button id="btnHow">Kontroller</button>
+        <button id="btnReset" class="danger">Sıfırla</button>
       </div>
+    </div>
 
-      <div class="small">
-        Not: Tarayıcı gerçek tam ekran için izin ister. İstersen F11 kullan.
+    <div class="grid hide" id="howPanel">
+      <div class="panel">
+        <h3>Kontroller</h3>
+        <p>
+          Hareket: <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span><br>
+          Etkileşim: <span class="kbd">W</span> / <span class="kbd">↑</span><br>
+          Saklan (dolap): <span class="kbd">Space</span><br>
+          Asansör: <span class="kbd">Enter</span><br>
+          Menü: <span class="kbd">Esc</span>
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Kat Görevleri</h3>
+        <p>
+          Anahtar bul, sigorta onar, şifre çöz, kol çek.<br>
+          Görev bitmeden asansör çalışmaz.
+        </p>
+        <div class="small">Not: Tarayıcı gerçek tam ekran için izin ister. İstersen F11 kullan.</div>
       </div>
     </div>
   </div>
@@ -205,30 +175,38 @@
   "use strict";
 
   /* =========================
-     Canvas / Resize
+     Canvas setup
   ========================= */
   const cv = document.getElementById("cv");
   const ctx = cv.getContext("2d");
 
-  const uiFloor = document.getElementById("uiFloor");
-  const uiHP = document.getElementById("uiHP");
-  const uiKey = document.getElementById("uiKey");
-  const uiEvent = document.getElementById("uiEvent");
-  const uiMonster = document.getElementById("uiMonster");
-
-  const menu = document.getElementById("menu");
-  const hud = document.getElementById("hud");
-  const toast = document.getElementById("toast");
-
-  function fitCanvas() {
+  function fitCanvas(){
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const w = Math.floor(window.innerWidth * dpr);
-    const h = Math.floor(window.innerHeight * dpr);
-    cv.width = w;
-    cv.height = h;
+    cv.width = Math.floor(window.innerWidth * dpr);
+    cv.height = Math.floor(window.innerHeight * dpr);
   }
   window.addEventListener("resize", fitCanvas);
   fitCanvas();
+
+  /* =========================
+     UI
+  ========================= */
+  const hud = document.getElementById("hud");
+  const menu = document.getElementById("menu");
+  const toast = document.getElementById("toast");
+
+  const uiFloor = document.getElementById("uiFloor");
+  const uiHP = document.getElementById("uiHP");
+  const uiKey = document.getElementById("uiKey");
+  const uiGoal = document.getElementById("uiGoal");
+  const uiMonster = document.getElementById("uiMonster");
+
+  let toastTimer = 0;
+  function showToast(text, ms=2400){
+    toast.textContent = text;
+    toast.classList.add("show");
+    toastTimer = ms;
+  }
 
   /* =========================
      Helpers
@@ -242,7 +220,6 @@
   function now(){ return performance.now(); }
 
   function hashStr(s){
-    // simple deterministic hash for names
     let h=2166136261>>>0;
     for(let i=0;i<s.length;i++){
       h ^= s.charCodeAt(i);
@@ -250,9 +227,7 @@
     }
     return h>>>0;
   }
-
   function seededRand(seed){
-    // xorshift32
     let x = seed>>>0;
     return () => {
       x ^= x << 13; x >>>= 0;
@@ -263,357 +238,285 @@
   }
 
   /* =========================
-     Toast
+     Monster Names (unique per floor)
   ========================= */
-  let toastTimer = 0;
-  function showToast(text, ms=2400){
-    toast.textContent = text;
-    toast.classList.add("show");
-    toastTimer = ms;
-  }
-
-  /* =========================
-     Input
-  ========================= */
-  const keys = new Set();
-  const pressed = new Set();
-
-  window.addEventListener("keydown", (e)=>{
-    const k = (e.key || "").toLowerCase();
-    if (!keys.has(k)) pressed.add(k);
-    keys.add(k);
-
-    if (k === "escape") {
-      // toggle menu
-      if (game.running) toggleMenu();
-    }
-
-    // block scrolling
-    if (["arrowleft","arrowright","arrowup"," ","spacebar"].includes(k) || e.key === " ") e.preventDefault();
-  }, {passive:false});
-
-  window.addEventListener("keyup", (e)=>{
-    keys.delete((e.key||"").toLowerCase());
-  });
-
-  function isDown(k){ return keys.has(k); }
-  function wasPressed(k){ return pressed.has(k); }
-
-  /* =========================
-     Monster Name Generator
-     Each floor -> unique name (deterministic)
-  ========================= */
-  const namePartsA = ["Noct","Vanta","Ruin","Gloom","Sable","Grim","Dread","Vile","Murk","Void","Shade","Crypt","Feral","Cinder","Hollow","Wraith"];
-  const namePartsB = ["walker","seer","runner","mangler","whisper","stalker","crawler","drifter","lurker","binder","shiver","harrow","ripper","sunder","echo","warden"];
-  const namePartsC = ["-I","-II","-III","-IV","-V","-VI","-VII","-VIII","-IX","-X"];
+  const nameA = ["Noct","Vanta","Ruin","Gloom","Sable","Grim","Dread","Murk","Void","Shade","Crypt","Cinder","Hollow","Wraith","Ash","Frost"];
+  const nameB = ["Runner","Seer","Stalker","Crawler","Drifter","Whisper","Warden","Ripper","Echo","Binder","Harrier","Mangler","Sunder","Lurker","Slink","Watcher"];
+  const nameC = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
 
   function monsterNameForFloor(floor){
-    const seed = hashStr("TheElevator:"+floor);
-    const rnd = seededRand(seed);
-    const a = namePartsA[Math.floor(rnd()*namePartsA.length)];
-    const b = namePartsB[Math.floor(rnd()*namePartsB.length)];
-    const c = namePartsC[Math.floor(rnd()*namePartsC.length)];
-    // ensure visually distinct
-    return a + b + c;
+    const rnd = seededRand(hashStr("Monster:"+floor));
+    const a = nameA[Math.floor(rnd()*nameA.length)];
+    const b = nameB[Math.floor(rnd()*nameB.length)];
+    const c = nameC[Math.floor(rnd()*nameC.length)];
+    return a + " " + b + " " + c;
   }
 
   /* =========================
-     Procedural Room per Floor
-     Different widths and object positions
-  ========================= */
-  function roomForFloor(floor){
-    const seed = hashStr("Room:"+floor);
-    const rnd = seededRand(seed);
-
-    // dynamic world bounds inside screen
-    const W = cv.width, H = cv.height;
-    const floorY = Math.floor(H * (0.80 + (rnd()*0.03 - 0.015)));
-
-    // room width ratio changes per floor
-    const minRatio = 0.58;
-    const maxRatio = 0.86;
-    const ratio = minRatio + (maxRatio-minRatio) * (0.15 + 0.85*rnd());
-    const roomW = Math.floor(W * ratio);
-
-    const leftWall = Math.floor((W - roomW)/2);
-    const rightWall = leftWall + roomW;
-
-    const elevW = Math.floor(120 + rnd()*90);
-    const elevH = Math.floor(H * (0.32 + rnd()*0.08));
-    const elevX = Math.floor(rightWall - elevW - (40 + rnd()*40));
-    const elevY = Math.floor(floorY - elevH - (40 + rnd()*35));
-
-    const lockerW = Math.floor(62 + rnd()*40);
-    const lockerH = Math.floor(H * (0.18 + rnd()*0.07));
-    const lockerX = Math.floor(leftWall + (40 + rnd()*90));
-    const lockerY = Math.floor(floorY - lockerH);
-
-    const deskW = Math.floor(110 + rnd()*110);
-    const deskH = Math.floor(44 + rnd()*46);
-    const deskX = Math.floor(leftWall + roomW*(0.36 + rnd()*0.18));
-    const deskY = Math.floor(floorY - deskH);
-
-    return {
-      W, H,
-      floorY,
-      leftWall,
-      rightWall,
-      elevX, elevY, elevW, elevH,
-      doorW: Math.floor(elevW * 0.42),
-      doorH: Math.floor(elevH * 0.62),
-      lockerX, lockerY, lockerW, lockerH,
-      deskX, deskY, deskW, deskH
-    };
-  }
-
-  /* =========================
-     Game State
-  ========================= */
-  const game = {
-    running: false,
-    pausedMenu: true,
-    floor: 1,
-    state: "menu", // menu, ready, event, moving, fail, win
-    t: 0,
-    lights: 1,
-    shake: 0,
-    event: null,
-    room: null,
-    palette: null
-  };
-
-  const player = {
-    x: 0, y: 0,
-    vx: 0,
-    w: 22,
-    h: 46,
-    speed: 260,
-    hp: 3,
-    keys: 0,
-    hidden: false,
-    face: 1,
-    invuln: 0
-  };
-
-  const loot = { drawerTaken:false };
-
-  /* =========================
-     Color Palettes per Floor
+     Palettes (more colorful)
   ========================= */
   function paletteForFloor(floor){
-    const seed = hashStr("Pal:"+floor);
-    const rnd = seededRand(seed);
-
-    // vivid but dark-friendly
-    const hues = [195, 320, 42, 265, 155, 10, 230, 285];
+    const rnd = seededRand(hashStr("Pal:"+floor));
+    const hues = [195, 320, 42, 265, 155, 10, 230, 285, 90, 340];
     const baseHue = hues[Math.floor(rnd()*hues.length)];
-    const accentHue = (baseHue + 75 + Math.floor(rnd()*60)) % 360;
-
+    const accentHue = (baseHue + 70 + Math.floor(rnd()*70)) % 360;
     const sat1 = 72 + Math.floor(rnd()*18);
     const sat2 = 70 + Math.floor(rnd()*20);
 
     const bg1 = `hsl(${baseHue} ${sat1}% ${10 + Math.floor(rnd()*6)}%)`;
-    const bg2 = `hsl(${(baseHue+20)%360} ${sat1}% ${6 + Math.floor(rnd()*5)}%)`;
-    const wall = `hsl(${(baseHue+5)%360} ${sat1}% ${14 + Math.floor(rnd()*5)}%)`;
-    const panel = `hsl(${(baseHue+15)%360} ${sat1}% ${18 + Math.floor(rnd()*5)}%)`;
-    const neon = `hsl(${accentHue} ${sat2}% ${62 + Math.floor(rnd()*10)}%)`;
-    const warn = `hsl(${(accentHue+170)%360} ${85}% ${60}%)`;
+    const bg2 = `hsl(${(baseHue+22)%360} ${sat1}% ${6 + Math.floor(rnd()*5)}%)`;
+    const wall = `hsl(${(baseHue+8)%360} ${sat1}% ${14 + Math.floor(rnd()*6)}%)`;
+    const panel = `hsl(${(baseHue+14)%360} ${sat1}% ${18 + Math.floor(rnd()*6)}%)`;
+    const neon = `hsl(${accentHue} ${sat2}% ${62 + Math.floor(rnd()*12)}%)`;
+    const warn = `hsl(${(accentHue+170)%360} ${88}% ${60}%)`;
+    const good = `hsl(${(accentHue+40)%360} ${80}% ${62}%)`;
 
-    return { bg1, bg2, wall, panel, neon, warn };
+    return { bg1, bg2, wall, panel, neon, warn, good };
   }
 
   /* =========================
-     Events (Doors-like)
+     Procedural room (different sizes / placements)
   ========================= */
-  const EventType = {
+  function roomForFloor(floor){
+    const rnd = seededRand(hashStr("Room:"+floor));
+    const W = cv.width, H = cv.height;
+
+    const floorY = Math.floor(H * (0.80 + (rnd()*0.03 - 0.015)));
+    const minRatio = 0.58, maxRatio = 0.88;
+    const ratio = minRatio + (maxRatio-minRatio) * (0.20 + 0.80*rnd());
+    const roomW = Math.floor(W * ratio);
+
+    const leftWall = Math.floor((W-roomW)/2);
+    const rightWall = leftWall + roomW;
+
+    const elevW = Math.floor(130 + rnd()*110);
+    const elevH = Math.floor(H * (0.30 + rnd()*0.10));
+    const elevX = Math.floor(rightWall - elevW - (40 + rnd()*60));
+    const elevY = Math.floor(floorY - elevH - (40 + rnd()*40));
+
+    const lockerW = Math.floor(62 + rnd()*46);
+    const lockerH = Math.floor(H * (0.17 + rnd()*0.08));
+    const lockerX = Math.floor(leftWall + (40 + rnd()*110));
+    const lockerY = Math.floor(floorY - lockerH);
+
+    const deskW = Math.floor(120 + rnd()*150);
+    const deskH = Math.floor(44 + rnd()*60);
+    const deskX = Math.floor(leftWall + roomW*(0.34 + rnd()*0.24));
+    const deskY = Math.floor(floorY - deskH);
+
+    // extra objects for goals
+    const panelW = Math.floor(110 + rnd()*90);
+    const panelH = Math.floor(60 + rnd()*40);
+    const panelX = Math.floor(leftWall + roomW*(0.18 + rnd()*0.22));
+    const panelY = Math.floor(floorY - panelH - (40 + rnd()*40));
+
+    const keypadW = 56;
+    const keypadH = 70;
+    const keypadX = Math.floor(elevX - (70 + rnd()*80));
+    const keypadY = Math.floor(elevY + (40 + rnd()*70));
+
+    const leverW = 48;
+    const leverH = 80;
+    const leverX = Math.floor(leftWall + roomW*(0.65 + rnd()*0.18));
+    const leverY = Math.floor(floorY - leverH - (40 + rnd()*30));
+
+    // “clue note” positions
+    const noteX = Math.floor(leftWall + 60 + rnd()*(roomW-140));
+    const noteY = Math.floor(floorY - 220 - rnd()*140);
+
+    return {
+      W,H,floorY,leftWall,rightWall,
+      elevX,elevY,elevW,elevH,
+      doorW: Math.floor(elevW*0.42),
+      doorH: Math.floor(elevH*0.62),
+      lockerX,lockerY,lockerW,lockerH,
+      deskX,deskY,deskW,deskH,
+      panelX,panelY,panelW,panelH,
+      keypadX,keypadY,keypadW,keypadH,
+      leverX,leverY,leverW,leverH,
+      noteX,noteY
+    };
+  }
+
+  /* =========================
+     Goals per floor (varies)
+  ========================= */
+  const GoalType = {
     NONE:"none",
-    PASS:"pass",     // rush-like
-    LOOK:"look",     // eyes-like
-    LOCKER:"locker", // hide-like
-    WAVES:"waves"    // ambush-like
+    FIND_KEY:"find_key",
+    FIX_FUSE:"fix_fuse",
+    KEYPAD_CODE:"keypad_code",
+    PULL_LEVER:"pull_lever"
   };
 
-  function newEventForFloor(floor){
-    const seed = hashStr("Evt:"+floor);
-    const rnd = seededRand(seed);
-
-    // event chance grows
+  function goalForFloor(floor){
+    const rnd = seededRand(hashStr("Goal:"+floor));
+    // pattern: mix variety, make later floors more complex
     const t = clamp((floor-1)/99, 0, 1);
-    const have = rnd() < (0.62 + 0.25*t);
-    if (!have) return { type: EventType.NONE };
 
-    const wPass = 0.38 + 0.10*t;
-    const wLook = 0.26;
-    const wLock = 0.16 + 0.10*t;
-    const wWave = 0.20 + 0.10*t;
-    const sum = wPass+wLook+wLock+wWave;
+    // deterministic selection
+    const roll = rnd();
+    if (floor === 1) return { type: GoalType.NONE, text:"Serbest", done:true };
+    if (floor % 10 === 0) {
+      // special lock floors: always need a key or code
+      return (roll < 0.5)
+        ? { type: GoalType.FIND_KEY, text:"Anahtar bul", done:false }
+        : { type: GoalType.KEYPAD_CODE, text:"Şifre bul", done:false };
+    }
+    if (t < 0.35){
+      if (roll < 0.55) return { type: GoalType.FIND_KEY, text:"Anahtar bul", done:false };
+      return { type: GoalType.PULL_LEVER, text:"Kolu çek", done:false };
+    }
+    if (t < 0.72){
+      if (roll < 0.40) return { type: GoalType.FIX_FUSE, text:"Sigorta onar", done:false };
+      if (roll < 0.72) return { type: GoalType.KEYPAD_CODE, text:"Şifre bul", done:false };
+      return { type: GoalType.PULL_LEVER, text:"Kolu çek", done:false };
+    }
+    // late game
+    if (roll < 0.45) return { type: GoalType.KEYPAD_CODE, text:"Şifre bul", done:false };
+    if (roll < 0.80) return { type: GoalType.FIX_FUSE, text:"Sigorta onar", done:false };
+    return { type: GoalType.FIND_KEY, text:"Anahtar bul", done:false };
+  }
+
+  /* =========================
+     Game state
+  ========================= */
+  const game = {
+    running:false,
+    floor:1,
+    state:"menu", // menu, play, moving, fail, win
+    t:0,
+    lights:1,
+    shake:0,
+    room:null,
+    pal:null,
+    monster:null,
+    goal:null,
+    inventory:{
+      fuse:false,
+      noteCode:null
+    },
+    objects:{
+      drawerTaken:false,
+      fuseTaken:false,
+      noteTaken:false,
+      panelFixed:false,
+      leverPulled:false,
+      keypadSolved:false,
+      keyFound:false
+    }
+  };
+
+  const player = {
+    x:0, y:0,
+    vx:0,
+    w:22, h:46,
+    speed: 280,
+    hp:3,
+    keys:0,
+    hidden:false,
+    face:1,
+    invuln:0
+  };
+
+  /* =========================
+     Monsters (visible sprites)
+     Types:
+       PASSER: rush-like, crosses
+       ROAMER: patrols in room, must avoid / hide
+       LOOKER: eyes-like at top, punish movement
+       WAVES: ambush-like multiple passes
+  ========================= */
+  const MonsterType = {
+    NONE:"none",
+    PASSER:"passer",
+    ROAMER:"roamer",
+    LOOKER:"looker",
+    WAVES:"waves"
+  };
+
+  function monsterForFloor(floor){
+    const rnd = seededRand(hashStr("MonType:"+floor));
+    const name = monsterNameForFloor(floor);
+    const t = clamp((floor-1)/99, 0, 1);
+
+    // chance of monster this floor
+    const have = rnd() < (0.55 + 0.30*t);
+    if (!have) return { type:MonsterType.NONE, name };
+
+    // weighted pick (later floors more intense)
+    const wRoam = 0.30 + 0.12*t;
+    const wPass = 0.32 + 0.10*t;
+    const wLook = 0.20;
+    const wWave = 0.18 + 0.14*t;
+    const sum = wRoam+wPass+wLook+wWave;
     let r = rnd()*sum;
 
-    let type = EventType.PASS;
-    if ((r -= wPass) < 0) type = EventType.PASS;
-    else if ((r -= wLook) < 0) type = EventType.LOOK;
-    else if ((r -= wLock) < 0) type = EventType.LOCKER;
-    else type = EventType.WAVES;
+    let type = MonsterType.ROAMER;
+    if ((r -= wRoam) < 0) type = MonsterType.ROAMER;
+    else if ((r -= wPass) < 0) type = MonsterType.PASSER;
+    else if ((r -= wLook) < 0) type = MonsterType.LOOKER;
+    else type = MonsterType.WAVES;
 
-    const monster = monsterNameForFloor(floor);
+    const baseSpeed = 170 + floor*1.4;
+    const big = 1 + t*0.35;
 
-    if (type === EventType.PASS) return {
-      type, monster,
-      phase:"warn",
-      t:0,
-      x:-240,
-      speed: 760 + floor*2.2,
-      help:"Geçiş geliyor. Dolaba gir (Space)."
-    };
-
-    if (type === EventType.LOOK) return {
-      type, monster,
-      t:0,
-      duration: 2600 + Math.floor(rnd()*2200),
-      help:"Hareket etme. Kıpırdama."
-    };
-
-    if (type === EventType.LOCKER) return {
-      type, monster,
-      t:0,
-      duration: 2600 + Math.floor(rnd()*2600),
-      help:"Dolapta çok uzun kalma."
-    };
-
-    // WAVES
+    if (type === MonsterType.ROAMER){
+      return {
+        type, name,
+        x: 0, y: 0, w: 44*big, h: 40*big,
+        vx: (rnd()<0.5 ? -1 : 1) * (baseSpeed*0.8),
+        state:"hunt",
+        seen: false,
+        help:"Odada dolaşıyor. Yaklaşma. Saklan (Space)."
+      };
+    }
+    if (type === MonsterType.PASSER){
+      return {
+        type, name,
+        x: -400, y: 0, w: 80*big, h: 52*big,
+        speed: baseSpeed*3.6,
+        phase:"warn",
+        tt:0,
+        help:"Geçiş geliyor. Dolaba gir (Space)."
+      };
+    }
+    if (type === MonsterType.LOOKER){
+      return {
+        type, name,
+        tt:0,
+        duration: 2600 + Math.floor(rnd()*2600),
+        help:"Hareket etme."
+      };
+    }
     return {
-      type, monster,
+      type, name,
       phase:"warn",
-      t:0,
+      tt:0,
       passes: 2 + Math.floor(rnd()*3),
-      passIndex: 0,
+      passIndex:0,
       dir: 1,
-      x: -300,
-      speed: 640 + floor*1.6,
-      help:"Geçişte saklan, durulunca çık."
+      x:-500, y:0, w: 90*big, h: 58*big,
+      speed: baseSpeed*3.0,
+      help:"Geçişte saklan, arada çık."
     };
   }
 
   /* =========================
-     Interactions
+     Util: collisions
   ========================= */
+  function rectsOverlap(a,b){
+    return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h);
+  }
+
   function near(x,y,r){
     const dx = player.x - x;
     const dy = player.y - y;
     return (dx*dx + dy*dy) <= r*r;
   }
 
-  function tryDrawer(){
-    if (game.state !== "ready" && game.state !== "event") return;
-    if (loot.drawerTaken) { showToast("Çekmece boş."); return; }
-    const R = game.room;
-    if (!near(R.deskX + R.deskW/2, R.floorY - 10, 110)) { showToast("Çekmeceye yaklaş."); return; }
-    loot.drawerTaken = true;
-    player.keys += 1;
-    showToast("Anahtar +1");
-  }
-
-  function tryElevator(){
-    if (game.state !== "ready") return;
-    const R = game.room;
-    if (!near(R.elevX + R.elevW/2, R.floorY - 10, 160)) { showToast("Asansöre yaklaş."); return; }
-
-    const needKey = (game.floor % 10 === 0);
-    if (needKey && player.keys <= 0) {
-      showToast("Asansör kilitli. Anahtar gerekli.");
-      return;
-    }
-    if (needKey) player.keys -= 1;
-    enterMoving();
-  }
-
-  function toggleHide(){
-    if (game.state === "moving" || game.state === "fail" || game.state === "win") return;
-    const R = game.room;
-    if (!near(R.lockerX + R.lockerW/2, R.floorY - 10, 130)) { showToast("Dolaba yaklaş."); return; }
-    player.hidden = !player.hidden;
-    showToast(player.hidden ? "Dolaba girdin." : "Dolaptan çıktın.", 1400);
-  }
-
   /* =========================
-     State transitions
-  ========================= */
-  function syncUI(){
-    uiFloor.textContent = String(game.floor);
-    uiHP.textContent = String(player.hp);
-    uiKey.textContent = String(player.keys);
-    uiEvent.textContent =
-      game.state === "event" ? "Var" :
-      game.state === "moving" ? "Asansör" :
-      game.state === "fail" ? "Bitti" :
-      game.state === "win" ? "Kazandı" : "Yok";
-    uiMonster.textContent = (game.event && game.event.type !== EventType.NONE) ? game.event.monster : "-";
-  }
-
-  function damage(reason){
-    if (player.invuln > 0) return;
-    player.hp -= 1;
-    player.invuln = 1200;
-    game.shake = 1.0;
-    game.lights = 0.62;
-    showToast("Hasar: " + reason, 2200);
-    if (player.hp <= 0) enterFail(reason);
-    syncUI();
-  }
-
-  function enterFloor(f){
-    game.floor = clamp(f, 1, 100);
-    game.room = roomForFloor(game.floor);
-    game.palette = paletteForFloor(game.floor);
-
-    // reset objects
-    loot.drawerTaken = false;
-    player.hidden = false;
-
-    // place player
-    player.x = clamp(game.room.leftWall + 160, game.room.leftWall+40, game.room.rightWall-40);
-    player.y = game.room.floorY;
-    player.vx = 0;
-
-    game.lights = 1.0;
-    game.shake = 0;
-
-    game.event = newEventForFloor(game.floor);
-    if (game.event.type === EventType.NONE){
-      game.state = "ready";
-      showToast("Kat sakin. Çekmeceyi kontrol et.", 2200);
-    } else {
-      game.state = "event";
-      showToast("Olay: " + game.event.monster + "\n" + game.event.help, 2800);
-    }
-    syncUI();
-  }
-
-  function enterMoving(){
-    game.state = "moving";
-    game.t = 0;
-    game.shake = 0.6;
-    game.lights = 0.9;
-    showToast("Asansör hareket ediyor...", 1600);
-    syncUI();
-  }
-
-  function enterFail(reason){
-    game.state = "fail";
-    game.t = 0;
-    showToast("Oyun bitti: " + reason + "\nMenü için Esc, sıfırlamak için menüden Sıfırla.", 4000);
-    syncUI();
-  }
-
-  function enterWin(){
-    game.state = "win";
-    game.t = 0;
-    showToast("100. kata ulaştın. Kazandın.\nDevamını istersek yeni kat tipleri ekleriz.", 4500);
-    syncUI();
-  }
-
-  /* =========================
-     Drawing (pixel-ish)
+     Drawing helpers
   ========================= */
   function pxRect(x,y,w,h){ ctx.fillRect(x|0,y|0,w|0,h|0); }
 
@@ -622,17 +525,30 @@
     ctx.save();
     const g = ctx.createRadialGradient(W/2,H/2,50,W/2,H/2,Math.max(W,H)*0.62);
     g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, `rgba(0,0,0,${clamp(intensity,0,0.9)})`);
+    g.addColorStop(1, `rgba(0,0,0,${clamp(intensity,0,0.92)})`);
     ctx.fillStyle = g;
     ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
 
+  function drawTextBox(text, x, y, color){
+    ctx.save();
+    ctx.font = `${Math.max(14, Math.floor(Math.min(cv.width, cv.height)/68))}px ui-monospace, Menlo, Consolas, monospace`;
+    const w = ctx.measureText(text).width;
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    pxRect(x-10, y-22, w+20, 30);
+    ctx.fillStyle = color || "rgba(255,255,255,.92)";
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
   function drawPlayer(){
     if (player.hidden) return;
-
-    const s = Math.max(2, Math.floor(Math.min(cv.width, cv.height) / 360));
+    const s = Math.max(2, Math.floor(Math.min(cv.width, cv.height)/360));
     const x = player.x, y = player.y;
+    const ox = (x - 6*s)|0;
+    const oy = (y - 16*s)|0;
 
     // shadow
     ctx.globalAlpha = 0.25;
@@ -640,68 +556,125 @@
     pxRect(x - 12*s, y - 2*s, 24*s, 4*s);
     ctx.globalAlpha = 1;
 
-    const ox = (x - 6*s)|0;
-    const oy = (y - 16*s)|0;
-
     const skin = "#4b2f25";
     const shirt = "#3d7bff";
     const pants = "#1c2238";
 
     if (player.invuln > 0 && Math.floor(player.invuln/80)%2===0) ctx.globalAlpha = 0.45;
 
-    // legs
     ctx.fillStyle = pants;
     pxRect(ox + 4*s, oy + 12*s, 3*s, 4*s);
     pxRect(ox + 9*s, oy + 12*s, 3*s, 4*s);
 
-    // shoes
     ctx.fillStyle = "#090b14";
     pxRect(ox + 3*s, oy + 15*s, 4*s, 2*s);
     pxRect(ox + 9*s, oy + 15*s, 4*s, 2*s);
 
-    // torso
     ctx.fillStyle = shirt;
     pxRect(ox + 4*s, oy + 7*s, 8*s, 6*s);
 
-    // arms
     ctx.fillStyle = shirt;
     pxRect(ox + 2*s, oy + 8*s, 2*s, 4*s);
     pxRect(ox + 12*s, oy + 8*s, 2*s, 4*s);
 
-    // hands
     ctx.fillStyle = skin;
     pxRect(ox + 2*s, oy + 11*s, 2*s, 2*s);
     pxRect(ox + 12*s, oy + 11*s, 2*s, 2*s);
 
-    // head
     ctx.fillStyle = skin;
     pxRect(ox + 5*s, oy + 2*s, 6*s, 5*s);
 
-    // hair
     ctx.fillStyle = "#141018";
     pxRect(ox + 5*s, oy + 2*s, 6*s, 2*s);
 
-    // eyes
     ctx.fillStyle = "#eaf2ff";
     pxRect(ox + 6*s, oy + 4*s, 1*s, 1*s);
     pxRect(ox + 9*s, oy + 4*s, 1*s, 1*s);
 
-    // pupils direction
     ctx.fillStyle = "#0a0c12";
     const dir = player.face > 0 ? 1 : 0;
     pxRect(ox + (6+dir)*s, oy + 4*s, 1*s, 1*s);
     pxRect(ox + (9+dir)*s, oy + 4*s, 1*s, 1*s);
 
-    // mouth
     ctx.fillStyle = "#0a0c12";
     pxRect(ox + 7*s, oy + 6*s, 2*s, 1*s);
 
     ctx.globalAlpha = 1;
   }
 
+  function drawMonsterSprite(m){
+    const R = game.room;
+    const P = game.pal;
+    const s = Math.max(2, Math.floor(Math.min(cv.width, cv.height)/420));
+
+    if (m.type === MonsterType.LOOKER){
+      // eyes at top, visible
+      const W=cv.width,H=cv.height;
+      const x=W/2, y=Math.floor(H*0.22);
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "rgba(255,255,255,.84)";
+      pxRect(x-95, y-18, 72, 28);
+      pxRect(x+23, y-18, 72, 28);
+      ctx.fillStyle = "rgba(0,0,0,.86)";
+      const p = player.face > 0 ? 12 : -12;
+      pxRect(x-64 + p, y-10, 18, 18);
+      pxRect(x+52 + p, y-10, 18, 18);
+      ctx.restore();
+      drawTextBox(m.name, Math.floor(x-120), Math.floor(H*0.12), P.warn);
+      return;
+    }
+
+    // body (pixel blob)
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = P.warn;
+
+    const step = Math.max(14, Math.floor(Math.min(cv.width, cv.height)/64));
+    const cx = m.x, cy = m.y;
+    const w = m.w, h = m.h;
+
+    for (let yy=-h/2; yy<=h/2; yy+=step){
+      for (let xx=-w/2; xx<=w/2; xx+=step){
+        const d = (xx*xx)/(w*w) + (yy*yy)/(h*h);
+        if (d < 0.24 + Math.random()*0.26) pxRect(cx+xx, cy+yy, step-2, step-2);
+      }
+    }
+
+    // eyes on blob
+    ctx.fillStyle = "rgba(255,255,255,.86)";
+    pxRect(cx+18*s, cy-10*s, 12*s, 7*s);
+    pxRect(cx+44*s, cy-10*s, 12*s, 7*s);
+    ctx.fillStyle = "rgba(0,0,0,.90)";
+    pxRect(cx+22*s, cy-8*s, 5*s, 5*s);
+    pxRect(cx+48*s, cy-8*s, 5*s, 5*s);
+
+    ctx.restore();
+
+    // name tag
+    drawTextBox(m.name, clamp(cx - 140, 20, cv.width-260), clamp(cy - m.h/2 - 18, 30, cv.height-30), P.warn);
+  }
+
+  function drawWarningStripes(alpha){
+    const W=cv.width,H=cv.height;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = game.pal.warn;
+    for (let i=-240; i<W+240; i+=42){
+      ctx.beginPath();
+      ctx.moveTo(i,0);
+      ctx.lineTo(i+20,0);
+      ctx.lineTo(i+260,H);
+      ctx.lineTo(i+240,H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawRoom(){
     const R = game.room;
-    const P = game.palette;
+    const P = game.pal;
     const W = cv.width, H = cv.height;
 
     // colorful background
@@ -721,35 +694,37 @@
     for (let x=0; x<W; x+=step) pxRect(x,0,1,H);
     ctx.globalAlpha = 1;
 
-    // walls and floor
+    // walls / floor
+    const topY = Math.floor(H*0.10);
     ctx.fillStyle = P.wall;
-    pxRect(R.leftWall, Math.floor(H*0.10), R.rightWall-R.leftWall, R.floorY - Math.floor(H*0.10));
+    pxRect(R.leftWall, topY, R.rightWall-R.leftWall, R.floorY - topY);
     ctx.fillStyle = P.panel;
     pxRect(0, R.floorY, W, H - R.floorY);
 
     // pillars
     ctx.fillStyle = "rgba(0,0,0,.28)";
-    pxRect(R.leftWall, Math.floor(H*0.10), Math.floor(step*0.4), R.floorY - Math.floor(H*0.10));
-    pxRect(R.rightWall - Math.floor(step*0.4), Math.floor(H*0.10), Math.floor(step*0.4), R.floorY - Math.floor(H*0.10));
+    pxRect(R.leftWall, topY, Math.floor(step*0.4), R.floorY-topY);
+    pxRect(R.rightWall-Math.floor(step*0.4), topY, Math.floor(step*0.4), R.floorY-topY);
 
     // floor line
     ctx.fillStyle = "rgba(255,255,255,.12)";
     pxRect(R.leftWall, R.floorY, R.rightWall-R.leftWall, 2);
 
-    // elevator
+    // elevator frame
     ctx.fillStyle = "rgba(0,0,0,.35)";
     pxRect(R.elevX, R.elevY, R.elevW, R.elevH);
     ctx.fillStyle = "rgba(255,255,255,.08)";
     pxRect(R.elevX+8, R.elevY+8, R.elevW-16, R.elevH-16);
 
-    const open = (game.state === "moving") ? clamp(game.t/650,0,1) : 0;
-    const gap = Math.floor(36 * open);
+    // doors
+    const open = (game.state==="moving") ? clamp(game.t/650,0,1) : 0;
+    const gap = Math.floor(36*open);
     ctx.fillStyle = "rgba(255,255,255,.10)";
     pxRect(R.elevX + 14 - gap, R.elevY + Math.floor(R.elevH*0.22), R.doorW, R.doorH);
     pxRect(R.elevX + R.elevW - 14 - R.doorW + gap, R.elevY + Math.floor(R.elevH*0.22), R.doorW, R.doorH);
 
     // elevator panel light
-    ctx.fillStyle = P.neon;
+    ctx.fillStyle = (game.goal && game.goal.done) ? P.good : P.neon;
     pxRect(R.elevX + R.elevW - 30, R.elevY + 18, 14, 14);
 
     // locker
@@ -760,268 +735,569 @@
     ctx.fillStyle = "rgba(104,255,177,.85)";
     pxRect(R.lockerX + R.lockerW - 14, R.lockerY + Math.floor(R.lockerH/2), 6, 6);
 
-    // desk
+    // desk (key / fuse / clues spawn here sometimes)
     ctx.fillStyle = "rgba(0,0,0,.35)";
     pxRect(R.deskX, R.deskY, R.deskW, R.deskH);
     ctx.fillStyle = "rgba(255,255,255,.08)";
     pxRect(R.deskX+6, R.deskY+6, R.deskW-12, R.deskH-12);
-
-    // drawer knob
-    ctx.fillStyle = loot.drawerTaken ? "rgba(255,255,255,.25)" : "rgba(255,227,123,.85)";
+    ctx.fillStyle = game.objects.drawerTaken ? "rgba(255,255,255,.25)" : "rgba(255,227,123,.85)";
     pxRect(R.deskX + R.deskW - 18, R.deskY + Math.floor(R.deskH/2), 10, 4);
 
-    // sign
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "rgba(0,0,0,.25)";
-    pxRect(R.leftWall + 36, Math.floor(H*0.12), 220, 30);
-    ctx.fillStyle = "rgba(255,255,255,.82)";
-    ctx.font = `${Math.max(14, Math.floor(Math.min(W,H)/60))}px ui-monospace, Menlo, Consolas, monospace`;
-    ctx.fillText(`FLOOR ${game.floor}`, R.leftWall + 50, Math.floor(H*0.12)+22);
-    ctx.globalAlpha = 1;
+    // fuse panel
+    ctx.fillStyle = "rgba(0,0,0,.28)";
+    pxRect(R.panelX, R.panelY, R.panelW, R.panelH);
+    ctx.fillStyle = "rgba(255,255,255,.08)";
+    pxRect(R.panelX+6, R.panelY+6, R.panelW-12, R.panelH-12);
+    ctx.fillStyle = game.objects.panelFixed ? P.good : P.warn;
+    pxRect(R.panelX + R.panelW - 18, R.panelY + 14, 10, 10);
 
-    // hint labels
-    ctx.globalAlpha = 0.72;
+    // keypad (for code goal)
+    ctx.fillStyle = "rgba(0,0,0,.30)";
+    pxRect(R.keypadX, R.keypadY, R.keypadW, R.keypadH);
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    pxRect(R.keypadX+6, R.keypadY+6, R.keypadW-12, R.keypadH-12);
+    ctx.fillStyle = game.objects.keypadSolved ? P.good : P.neon;
+    pxRect(R.keypadX + 18, R.keypadY + 12, 20, 8);
+
+    // lever
+    ctx.fillStyle = "rgba(0,0,0,.30)";
+    pxRect(R.leverX, R.leverY, R.leverW, R.leverH);
+    ctx.fillStyle = game.objects.leverPulled ? P.good : P.neon;
+    pxRect(R.leverX + 18, R.leverY + 10, 12, 54);
+
+    // note (clue for keypad)
+    ctx.fillStyle = game.objects.noteTaken ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.62)";
+    pxRect(R.noteX, R.noteY, 34, 22);
+
+    // labels
+    ctx.globalAlpha = 0.80;
     ctx.fillStyle = P.neon;
     ctx.font = `${Math.max(12, Math.floor(Math.min(W,H)/78))}px system-ui, Arial`;
-    ctx.fillText("Asansör (Enter)", R.elevX + 14, R.elevY + R.elevH + 18);
     ctx.fillText("Dolap (Space)", R.lockerX - 2, R.lockerY - 10);
-    ctx.fillText("Çekmece (W)", R.deskX + 10, R.deskY - 10);
+    ctx.fillText("Çekmece / Eşya (W)", R.deskX, R.deskY - 10);
+    ctx.fillText("Asansör (Enter)", R.elevX + 10, R.elevY + R.elevH + 18);
+    ctx.fillText("Panel (W)", R.panelX, R.panelY - 10);
+    ctx.fillText("Şifre Paneli (W)", R.keypadX - 10, R.keypadY - 10);
+    ctx.fillText("Kol (W)", R.leverX - 10, R.leverY - 10);
     ctx.globalAlpha = 1;
 
     // hidden overlay
     if (player.hidden){
       ctx.globalAlpha = 0.55;
-      ctx.fillStyle = "rgba(0,0,0,.75)";
+      ctx.fillStyle = "rgba(0,0,0,.78)";
       ctx.fillRect(0,0,W,H);
       ctx.globalAlpha = 1;
-      drawTextCenter("Dolaptasın. Sessiz kal.", Math.floor(H*0.16), P.neon);
+      drawTextBox("Dolaptasın. Sessiz kal.", 24, 44, P.neon);
     }
-  }
 
-  function drawTextCenter(text, y, color){
-    const W=cv.width;
-    ctx.save();
-    ctx.font = `${Math.max(16, Math.floor(Math.min(cv.width, cv.height)/48))}px ui-monospace, Menlo, Consolas, monospace`;
-    const w = ctx.measureText(text).width;
-    ctx.globalAlpha = 0.92;
-    ctx.fillStyle = "rgba(0,0,0,.35)";
-    pxRect((W-w)/2 - 12, y - 26, w + 24, 34);
-    ctx.fillStyle = color || "rgba(255,255,255,.92)";
-    ctx.fillText(text, (W-w)/2, y);
-    ctx.restore();
-  }
-
-  function drawWarningStripes(alpha){
-    const W=cv.width,H=cv.height;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = game.palette.warn;
-    for (let i=-240; i<W+240; i+=42){
-      ctx.beginPath();
-      ctx.moveTo(i,0);
-      ctx.lineTo(i+20,0);
-      ctx.lineTo(i+260,H);
-      ctx.lineTo(i+240,H);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawEntityBlob(x,y,w,h){
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = game.palette.warn;
-    const step = Math.max(14, Math.floor(Math.min(cv.width, cv.height)/64));
-    for (let yy=-h/2; yy<=h/2; yy+=step){
-      for (let xx=-w/2; xx<=w/2; xx+=step){
-        const d = (xx*xx)/(w*w) + (yy*yy)/(h*h);
-        if (d < 0.22 + Math.random()*0.28) pxRect(x+xx, y+yy, step-2, step-2);
-      }
-    }
-    // eyes
+    // top sign
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    pxRect(R.leftWall + 36, topY, 260, 30);
     ctx.fillStyle = "rgba(255,255,255,.85)";
-    pxRect(x+18, y-10, 12, 7);
-    pxRect(x+44, y-10, 12, 7);
-    ctx.fillStyle = "rgba(0,0,0,.88)";
-    pxRect(x+22, y-8, 5, 5);
-    pxRect(x+48, y-8, 5, 5);
-    ctx.restore();
-  }
-
-  function drawEyes(){
-    const W=cv.width,H=cv.height;
-    ctx.save();
-    ctx.globalAlpha = 0.92;
-    const x=W/2, y=Math.floor(H*0.22);
-    ctx.fillStyle = "rgba(255,255,255,.80)";
-    pxRect(x-95, y-18, 72, 28);
-    pxRect(x+23, y-18, 72, 28);
-    ctx.fillStyle = "rgba(0,0,0,.85)";
-    const p = player.face > 0 ? 12 : -12;
-    pxRect(x-64 + p, y-10, 18, 18);
-    pxRect(x+52 + p, y-10, 18, 18);
-    ctx.restore();
-
-    drawTextCenter("Dur. Kıpırdama.", Math.floor(H*0.16), game.palette.neon);
+    ctx.font = `${Math.max(14, Math.floor(Math.min(W,H)/60))}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.fillText(`FLOOR ${game.floor}`, R.leftWall + 50, topY+22);
+    ctx.globalAlpha = 1;
   }
 
   /* =========================
-     Event logic
+     Input
   ========================= */
-  function updateEvent(dt){
-    const e = game.event;
-    if (!e || e.type === EventType.NONE) return;
+  const keys = new Set();
+  const pressed = new Set();
 
-    const W=cv.width,H=cv.height;
+  window.addEventListener("keydown", (e)=>{
+    const k = (e.key||"").toLowerCase();
+    if (!keys.has(k)) pressed.add(k);
+    keys.add(k);
 
-    if (e.type === EventType.PASS){
-      e.t += dt;
-      if (e.phase === "warn"){
-        game.lights = lerp(game.lights, 0.72, 0.04);
-        if (e.t > 900){
-          e.phase = "pass";
-          e.t = 0;
-          e.x = -260;
-          game.shake = 0.35;
-        }
-      } else if (e.phase === "pass"){
-        game.lights = lerp(game.lights, 0.58, 0.06);
-        e.x += e.speed * (dt/1000);
-        game.shake = lerp(game.shake, 0.85, 0.06);
-
-        const hit = {x:e.x, y:Math.floor(H*0.48), w:260, h:140};
-        const px = player.x-10, py = player.y-player.h;
-        const overlap = !(px+20 < hit.x || px > hit.x+hit.w || py+player.h < hit.y || py > hit.y+hit.h);
-        if (overlap && !player.hidden) damage(e.monster + " yakaladı.");
-        if (e.x > W + 320){
-          game.event = null;
-          game.state = "ready";
-          game.lights = 1;
-          game.shake = 0;
-          showToast("Geçiş bitti.", 1600);
-        }
-      }
+    if (k === "escape" && game.running){
+      toggleMenu();
     }
 
-    if (e.type === EventType.LOOK){
-      e.t += dt;
+    if (["arrowleft","arrowright","arrowup"," ","spacebar"].includes(k) || e.key===" ") e.preventDefault();
+  }, {passive:false});
+
+  window.addEventListener("keyup", (e)=>{
+    keys.delete((e.key||"").toLowerCase());
+  });
+
+  function isDown(k){ return keys.has(k); }
+  function wasPressed(k){ return pressed.has(k); }
+
+  /* =========================
+     Interactions: goals / items
+  ========================= */
+  function resetObjects(){
+    game.inventory.fuse = false;
+    game.inventory.noteCode = null;
+
+    game.objects.drawerTaken = false;
+    game.objects.fuseTaken = false;
+    game.objects.noteTaken = false;
+    game.objects.panelFixed = false;
+    game.objects.leverPulled = false;
+    game.objects.keypadSolved = false;
+    game.objects.keyFound = false;
+  }
+
+  function makeCodeForFloor(floor){
+    const rnd = seededRand(hashStr("Code:"+floor));
+    const d1 = 1 + Math.floor(rnd()*9);
+    const d2 = Math.floor(rnd()*10);
+    const d3 = Math.floor(rnd()*10);
+    return ""+d1+d2+d3;
+  }
+
+  function tryInteract(){
+    const R = game.room;
+
+    // drawer / item pickup
+    if (near(R.deskX + R.deskW/2, R.floorY - 10, 120)){
+      if (!game.objects.drawerTaken){
+        game.objects.drawerTaken = true;
+
+        if (game.goal.type === GoalType.FIND_KEY && !game.objects.keyFound){
+          game.objects.keyFound = true;
+          game.goal.done = true;
+          showToast("Anahtar bulundu. Asansör açıldı.", 2200);
+        } else if (game.goal.type === GoalType.FIX_FUSE && !game.objects.fuseTaken){
+          // 50% chance fuse is in drawer, otherwise somewhere else (note)
+          const rnd = seededRand(hashStr("FusePlace:"+game.floor));
+          if (rnd() < 0.55){
+            game.objects.fuseTaken = true;
+            game.inventory.fuse = true;
+            showToast("Sigorta parçası bulundu. Panele git.", 2200);
+          } else {
+            showToast("Çekmece boş. Başka yerde olabilir.", 2000);
+          }
+        } else if (game.goal.type === GoalType.KEYPAD_CODE){
+          // sometimes a hint piece appears in drawer
+          const rnd = seededRand(hashStr("CodePlace:"+game.floor));
+          if (rnd() < 0.45 && !game.objects.noteTaken){
+            const code = makeCodeForFloor(game.floor);
+            game.inventory.noteCode = code;
+            game.objects.noteTaken = true;
+            showToast("Not buldun: şifre " + code, 2600);
+          } else {
+            showToast("Çekmece: işe yarar bir şey yok.", 1800);
+          }
+        } else {
+          // generic reward: extra key occasionally
+          if (chance(0.18)){
+            player.keys += 1;
+            showToast("Yedek anahtar +1", 1600);
+          } else {
+            showToast("Çekmecede bir şey yok.", 1600);
+          }
+        }
+      } else {
+        showToast("Çekmece boş.", 1400);
+      }
+      syncUI();
+      return;
+    }
+
+    // note pickup (clue)
+    if (!game.objects.noteTaken && near(R.noteX + 18, R.noteY + 10, 90)){
+      game.objects.noteTaken = true;
+      const code = makeCodeForFloor(game.floor);
+      game.inventory.noteCode = code;
+      showToast("Not buldun: şifre " + code, 2600);
+      syncUI();
+      return;
+    }
+
+    // fuse panel fix
+    if (near(R.panelX + R.panelW/2, R.panelY + R.panelH/2, 140)){
+      if (game.goal.type !== GoalType.FIX_FUSE){
+        showToast("Panel aktif değil.", 1400);
+        return;
+      }
+      if (game.objects.panelFixed){
+        showToast("Panel zaten onarıldı.", 1400);
+        return;
+      }
+      if (!game.inventory.fuse){
+        // if fuse not in drawer, allow it to be found as note pickup (fallback)
+        const rnd = seededRand(hashStr("FuseFallback:"+game.floor));
+        if (!game.objects.fuseTaken && rnd() < 0.35){
+          game.objects.fuseTaken = true;
+          game.inventory.fuse = true;
+          showToast("Panel yanında sigorta buldun.", 1900);
+        } else {
+          showToast("Sigorta parçası gerekli.", 1700);
+          return;
+        }
+      }
+      game.objects.panelFixed = true;
+      game.goal.done = true;
+      showToast("Panel onarıldı. Asansör açıldı.", 2200);
+      syncUI();
+      return;
+    }
+
+    // lever pull
+    if (near(R.leverX + R.leverW/2, R.leverY + R.leverH/2, 140)){
+      if (game.goal.type !== GoalType.PULL_LEVER){
+        showToast("Kol kilitli.", 1400);
+        return;
+      }
+      if (!game.objects.leverPulled){
+        game.objects.leverPulled = true;
+        game.goal.done = true;
+        showToast("Kolu çektin. Asansör açıldı.", 2200);
+      } else {
+        showToast("Kol zaten çekildi.", 1400);
+      }
+      syncUI();
+      return;
+    }
+
+    // keypad solve
+    if (near(R.keypadX + R.keypadW/2, R.keypadY + R.keypadH/2, 140)){
+      if (game.goal.type !== GoalType.KEYPAD_CODE){
+        showToast("Şifre paneli devre dışı.", 1400);
+        return;
+      }
+      if (game.objects.keypadSolved){
+        showToast("Şifre zaten girildi.", 1400);
+        return;
+      }
+      if (!game.inventory.noteCode){
+        showToast("Şifre ipucu gerekli. Not ara.", 2000);
+        return;
+      }
+      game.objects.keypadSolved = true;
+      game.goal.done = true;
+      showToast("Şifre doğru. Asansör açıldı.", 2200);
+      syncUI();
+      return;
+    }
+
+    showToast("Etkileşim yok. Nesneye yaklaş.", 1300);
+  }
+
+  function toggleHide(){
+    const R = game.room;
+    if (!near(R.lockerX + R.lockerW/2, R.floorY - 10, 140)){
+      showToast("Dolaba yaklaş.", 1300);
+      return;
+    }
+    player.hidden = !player.hidden;
+    showToast(player.hidden ? "Dolaba girdin." : "Dolaptan çıktın.", 1200);
+  }
+
+  function tryElevator(){
+    const R = game.room;
+    if (!near(R.elevX + R.elevW/2, R.floorY - 10, 190)){
+      showToast("Asansöre yaklaş.", 1300);
+      return;
+    }
+    if (!game.goal.done){
+      showToast("Önce görevi bitir.", 1600);
+      return;
+    }
+    // optional extra lock: every 10 floors also consumes a spare key if you have it
+    if (game.floor % 10 === 0){
+      if (player.keys <= 0){
+        showToast("Yedek anahtar gerekli (çekmeceler).", 2000);
+        return;
+      }
+      player.keys -= 1;
+    }
+    enterMoving();
+  }
+
+  /* =========================
+     Damage / end
+  ========================= */
+  function damage(reason){
+    if (player.invuln > 0) return;
+    player.hp -= 1;
+    player.invuln = 1200;
+    game.shake = 1.0;
+    game.lights = 0.62;
+    showToast("Hasar: " + reason, 2200);
+    if (player.hp <= 0) enterFail(reason);
+    syncUI();
+  }
+
+  /* =========================
+     Update monster behavior (visible)
+  ========================= */
+  function initMonsterPosition(){
+    const R = game.room;
+    const m = game.monster;
+    if (!m || m.type === MonsterType.NONE) return;
+
+    const midY = Math.floor(R.floorY - 120);
+    if (m.type === MonsterType.ROAMER){
+      const rnd = seededRand(hashStr("RoamPos:"+game.floor));
+      m.x = Math.floor(lerp(R.leftWall+80, R.rightWall-80, rnd()));
+      m.y = midY + Math.floor((rnd()*2-1)*50);
+    }
+    if (m.type === MonsterType.PASSER){
+      m.x = -400;
+      m.y = midY + 30;
+    }
+    if (m.type === MonsterType.WAVES){
+      m.x = -500;
+      m.y = midY + 30;
+    }
+  }
+
+  function updateMonster(dt){
+    const R = game.room;
+    const m = game.monster;
+    if (!m || m.type === MonsterType.NONE) return;
+
+    // LOOKER: punish movement, visible eyes drawn
+    if (m.type === MonsterType.LOOKER){
+      m.tt += dt;
       game.lights = lerp(game.lights, 0.72, 0.05);
-
-      const moving = Math.abs(player.vx) > 1;
-      if (moving) damage(e.monster + " hareketini fark etti.");
-      if (e.t > e.duration){
-        game.event = null;
-        game.state = "ready";
-        game.lights = 1;
-        showToast("Bakış bitti.", 1500);
+      if (Math.abs(player.vx) > 1) damage(m.name + " hareketini fark etti.");
+      if (m.tt > m.duration){
+        // ends naturally
+        game.monster = null;
+        showToast("Tehdit geçti.", 1500);
+        uiMonster.textContent = "-";
       }
+      return;
     }
 
-    if (e.type === EventType.LOCKER){
-      e.t += dt;
-      game.lights = lerp(game.lights, 0.82, 0.05);
+    // PASSER: warning then pass across screen
+    if (m.type === MonsterType.PASSER){
+      m.tt += dt;
 
-      if (player.hidden && e.t > e.duration*0.65){
-        player.hidden = false;
-        damage(e.monster + " dolabı zorladı.");
-      }
-      if (e.t > e.duration){
-        game.event = null;
-        game.state = "ready";
-        game.lights = 1;
-        showToast("Dolap baskısı geçti.", 1500);
-      }
-    }
-
-    if (e.type === EventType.WAVES){
-      e.t += dt;
-
-      if (e.phase === "warn"){
-        game.lights = lerp(game.lights, 0.7, 0.05);
-        if (e.t > 900){
-          e.phase = "pass";
-          e.t = 0;
-          e.x = (e.dir>0) ? -320 : (W+320);
-          game.shake = 0.45;
+      if (m.phase === "warn"){
+        game.lights = lerp(game.lights, 0.72, 0.04);
+        drawWarningStripes(0.22); // drawn also in render; harmless call if missed, but we'll do in render too
+        if (m.tt > 900){
+          m.phase = "pass";
+          m.tt = 0;
+          m.x = -400;
+          game.shake = 0.35;
+          showToast("Geçiş geliyor: " + m.name, 1600);
         }
-      } else if (e.phase === "pass"){
-        game.lights = lerp(game.lights, 0.55, 0.06);
-        e.x += e.dir * e.speed * (dt/1000);
+      } else if (m.phase === "pass"){
+        game.lights = lerp(game.lights, 0.58, 0.06);
+        m.x += m.speed * (dt/1000);
         game.shake = lerp(game.shake, 0.85, 0.06);
 
-        const hit = {x:e.x, y:Math.floor(H*0.48), w:280, h:150};
-        const px = player.x-10, py = player.y-player.h;
-        const overlap = !(px+20 < hit.x || px > hit.x+hit.w || py+player.h < hit.y || py > hit.y+hit.h);
-        if (overlap && !player.hidden) damage(e.monster + " yakaladı.");
+        const hit = { x: m.x - m.w/2, y: m.y - m.h/2, w: m.w, h: m.h };
+        const pbox = { x: player.x - 12, y: player.y - player.h, w: 24, h: player.h };
+        if (rectsOverlap(hit, pbox) && !player.hidden) damage(m.name + " yakaladı.");
 
-        const outRight = e.x > W+360;
-        const outLeft  = e.x < -360;
-        if (outRight || outLeft){
-          e.phase = "quiet";
-          e.t = 0;
-          e.dir *= -1;
-          e.passIndex += 1;
+        if (m.x > cv.width + 500){
+          game.monster = null;
+          showToast("Geçiş bitti.", 1400);
+          uiMonster.textContent = "-";
+          game.lights = lerp(game.lights, 1.0, 0.2);
+          game.shake = lerp(game.shake, 0, 0.2);
+        }
+      }
+      return;
+    }
+
+    // WAVES: multiple passes
+    if (m.type === MonsterType.WAVES){
+      m.tt += dt;
+
+      if (m.phase === "warn"){
+        game.lights = lerp(game.lights, 0.70, 0.05);
+        if (m.tt > 900){
+          m.phase = "pass";
+          m.tt = 0;
+          m.x = (m.dir>0) ? -500 : (cv.width + 500);
+          game.shake = 0.45;
+          showToast("Dalga başlıyor: " + m.name, 1700);
+        }
+      } else if (m.phase === "pass"){
+        game.lights = lerp(game.lights, 0.55, 0.06);
+        m.x += m.dir * m.speed * (dt/1000);
+        game.shake = lerp(game.shake, 0.85, 0.06);
+
+        const hit = { x: m.x - m.w/2, y: m.y - m.h/2, w: m.w, h: m.h };
+        const pbox = { x: player.x - 12, y: player.y - player.h, w: 24, h: player.h };
+        if (rectsOverlap(hit, pbox) && !player.hidden) damage(m.name + " yakaladı.");
+
+        const outR = m.x > cv.width + 520;
+        const outL = m.x < -520;
+        if (outR || outL){
+          m.phase = "quiet";
+          m.tt = 0;
+          m.dir *= -1;
+          m.passIndex += 1;
           game.shake = 0.10;
           game.lights = 0.82;
-          showToast("Sessizlik. Kısa sürer.", 1200);
+          showToast("Sessizlik.", 1100);
         }
-      } else if (e.phase === "quiet"){
+      } else if (m.phase === "quiet"){
         game.lights = lerp(game.lights, 0.88, 0.05);
-        if (player.hidden && chance(0.0025 * dt)) damage(e.monster + " sabırsızlandı.");
-        if (e.t > 850){
-          if (e.passIndex >= e.passes){
-            game.event = null;
-            game.state = "ready";
-            game.lights = 1;
+        if (player.hidden && chance(0.0025 * dt)) damage(m.name + " sabırsızlandı.");
+        if (m.tt > 850){
+          if (m.passIndex >= m.passes){
+            game.monster = null;
+            showToast("Dalga bitti.", 1300);
+            uiMonster.textContent = "-";
+            game.lights = 1.0;
             game.shake = 0;
-            showToast("Dalga bitti.", 1400);
           } else {
-            e.phase = "pass";
-            e.t = 0;
-            e.x = (e.dir>0) ? -320 : (W+320);
+            m.phase = "pass";
+            m.tt = 0;
+            m.x = (m.dir>0) ? -500 : (cv.width + 500);
             game.shake = 0.5;
           }
         }
       }
-    }
-  }
-
-  function drawEvent(){
-    const e = game.event;
-    if (!e || e.type === EventType.NONE) return;
-
-    const W=cv.width,H=cv.height;
-
-    if (e.type === EventType.PASS){
-      if (e.phase === "warn") drawWarningStripes(0.26);
-      if (e.phase === "pass") drawEntityBlob(e.x, Math.floor(H*0.60), 260, 130);
-      drawTextCenter(e.monster, Math.floor(H*0.12), game.palette.warn);
+      return;
     }
 
-    if (e.type === EventType.LOOK){
-      drawEyes();
-      drawTextCenter(e.monster, Math.floor(H*0.12), game.palette.warn);
-    }
+    // ROAMER: patrols inside room, visible always
+    if (m.type === MonsterType.ROAMER){
+      // if player hides, roamer may linger
+      const speedMul = player.hidden ? 0.55 : 1.0;
+      m.x += m.vx * speedMul * (dt/1000);
 
-    if (e.type === EventType.LOCKER){
-      drawWarningStripes(0.16);
-      drawTextCenter(e.monster, Math.floor(H*0.12), game.palette.warn);
-    }
+      // bounce in room
+      const minX = R.leftWall + 70;
+      const maxX = R.rightWall - 70;
+      if (m.x < minX){ m.x = minX; m.vx = Math.abs(m.vx); }
+      if (m.x > maxX){ m.x = maxX; m.vx = -Math.abs(m.vx); }
 
-    if (e.type === EventType.WAVES){
-      if (e.phase === "warn") drawWarningStripes(0.28);
-      if (e.phase === "pass") drawEntityBlob(e.x, Math.floor(H*0.60), 280, 140);
-      if (e.phase === "quiet") drawTextCenter("Sessizlik. Şimdi hareket et.", Math.floor(H*0.16), game.palette.neon);
-      drawTextCenter(e.monster, Math.floor(H*0.12), game.palette.warn);
+      // slight vertical bob
+      m.y = Math.floor(R.floorY - 140 + Math.sin((now()/500) + game.floor)*14);
+
+      // detect collision
+      const hit = { x: m.x - m.w/2, y: m.y - m.h/2, w: m.w, h: m.h };
+      const pbox = { x: player.x - 12, y: player.y - player.h, w: 24, h: player.h };
+      if (rectsOverlap(hit, pbox) && !player.hidden) damage(m.name + " yakaladı.");
+
+      // light tension effect
+      game.lights = lerp(game.lights, 0.84, 0.03);
+      game.shake = lerp(game.shake, 0.10, 0.03);
+      return;
     }
   }
 
   /* =========================
-     Update / Render loop
+     Menu
   ========================= */
-  let last = now();
+  const btnStart = document.getElementById("btnStart");
+  const btnHow = document.getElementById("btnHow");
+  const btnReset = document.getElementById("btnReset");
+  const howPanel = document.getElementById("howPanel");
 
+  btnHow.addEventListener("click", ()=> howPanel.classList.toggle("hide"));
+  btnReset.addEventListener("click", ()=> hardReset());
+  btnStart.addEventListener("click", ()=> startGame());
+
+  function toggleMenu(){
+    if (!game.running) return;
+    const open = !menu.classList.contains("hide");
+    if (open){
+      menu.classList.add("hide");
+      showToast("Devam", 900);
+    } else {
+      menu.classList.remove("hide");
+      showToast("Menü", 900);
+    }
+  }
+
+  /* =========================
+     State transitions
+  ========================= */
+  function syncUI(){
+    uiFloor.textContent = String(game.floor);
+    uiHP.textContent = String(player.hp);
+    uiKey.textContent = String(player.keys);
+    uiGoal.textContent = game.goal ? game.goal.text + (game.goal.done ? " (bitti)" : "") : "-";
+    uiMonster.textContent = (game.monster && game.monster.type !== MonsterType.NONE) ? game.monster.name : "-";
+  }
+
+  function enterFloor(floor){
+    game.floor = clamp(floor, 1, 100);
+    game.room = roomForFloor(game.floor);
+    game.pal = paletteForFloor(game.floor);
+
+    resetObjects();
+
+    game.goal = goalForFloor(game.floor);
+    if (game.goal.type === GoalType.NONE) game.goal.done = true;
+
+    // spawn monster
+    game.monster = monsterForFloor(game.floor);
+    initMonsterPosition();
+
+    // place player
+    const R = game.room;
+    player.x = clamp(R.leftWall + 160, R.leftWall+40, R.rightWall-40);
+    player.y = R.floorY;
+    player.vx = 0;
+    player.hidden = false;
+
+    game.lights = 1.0;
+    game.shake = 0;
+    game.state = "play";
+    game.t = 0;
+
+    if (game.monster && game.monster.type !== MonsterType.NONE){
+      showToast("Tehdit: " + game.monster.name + "\n" + game.monster.help, 2800);
+    } else {
+      showToast("Bu kat sessiz. Görevi bitir.", 2000);
+    }
+
+    syncUI();
+  }
+
+  function enterMoving(){
+    game.state = "moving";
+    game.t = 0;
+    game.shake = 0.6;
+    game.lights = 0.90;
+    showToast("Asansör hareket ediyor...", 1500);
+    syncUI();
+  }
+
+  function enterFail(reason){
+    game.state = "fail";
+    game.t = 0;
+    showToast("Oyun bitti: " + reason + "\nEsc: Menü", 4000);
+    syncUI();
+  }
+
+  function enterWin(){
+    game.state = "win";
+    game.t = 0;
+    showToast("100. kata ulaştın. Kazandın.", 4200);
+    syncUI();
+  }
+
+  function startGame(){
+    menu.classList.add("hide");
+    hud.classList.remove("hide");
+    game.running = true;
+    player.hp = 3;
+    player.keys = 0;
+    player.invuln = 0;
+    enterFloor(1);
+    showToast("Başladı. 100. kata ulaş.", 1700);
+  }
+
+  function hardReset(){
+    game.running = true;
+    player.hp = 3;
+    player.keys = 0;
+    player.invuln = 0;
+    enterFloor(1);
+    menu.classList.remove("hide");
+    showToast("Sıfırlandı.", 1200);
+  }
+
+  /* =========================
+     Gameplay update/render
+  ========================= */
   function update(dt){
     if (!game.running) return;
 
@@ -1034,42 +1310,53 @@
 
     if (game.state === "fail" || game.state === "win") {
       player.vx = 0;
+      syncUI();
       return;
     }
 
-    // movement
+    const R = game.room;
+
+    // movement disabled in menu overlay but we keep game running; if menu open, just freeze
+    const menuOpen = !menu.classList.contains("hide");
     let ax = 0;
-    if (!player.hidden){
+    if (!menuOpen && !player.hidden){
       if (isDown("a") || isDown("arrowleft")) ax -= 1;
       if (isDown("d") || isDown("arrowright")) ax += 1;
     }
+
     player.vx = ax * player.speed;
     if (player.vx !== 0) player.face = player.vx > 0 ? 1 : -1;
 
-    // update position within room bounds
-    const R = game.room;
-    player.x += player.vx * (dt/1000);
-    player.x = clamp(player.x, R.leftWall + 30, R.rightWall - 30);
-    player.y = R.floorY;
+    if (game.state === "play"){
+      player.x += player.vx * (dt/1000);
+      player.x = clamp(player.x, R.leftWall + 30, R.rightWall - 30);
+      player.y = R.floorY;
 
-    // interactions
-    if (wasPressed("w") || wasPressed("arrowup")) tryDrawer();
-    if (wasPressed(" ") || wasPressed("spacebar")) toggleHide();
-    if (wasPressed("enter")) tryElevator();
+      // interactions
+      if (!menuOpen){
+        if (wasPressed("w") || wasPressed("arrowup")) tryInteract();
+        if (wasPressed(" ") || wasPressed("spacebar")) toggleHide();
+        if (wasPressed("enter")) tryElevator();
+      }
 
-    // state logic
-    game.t += dt;
+      // monster
+      if (!menuOpen) updateMonster(dt);
 
-    if (game.state === "event") updateEvent(dt);
-
-    if (game.state === "ready"){
-      game.lights = lerp(game.lights, 1.0, 0.02);
-      game.shake = lerp(game.shake, 0, 0.03);
+      // ambient settle
+      if (!game.monster || game.monster.type === MonsterType.NONE){
+        game.lights = lerp(game.lights, 1.0, 0.02);
+        game.shake = lerp(game.shake, 0, 0.03);
+      }
     }
 
     if (game.state === "moving"){
+      game.t += dt;
+      // keep movement minimal
+      player.vx = 0;
+
       game.lights = lerp(game.lights, 0.86, 0.03);
       game.shake = lerp(game.shake, 0.35, 0.04);
+
       if (game.t > 1200){
         const next = game.floor + 1;
         if (next >= 100){
@@ -1086,7 +1373,9 @@
 
   function render(){
     if (!game.running) return;
+    const W=cv.width,H=cv.height;
 
+    // shake
     const sx = (Math.random()*2-1) * (game.shake*10);
     const sy = (Math.random()*2-1) * (game.shake*6);
 
@@ -1094,19 +1383,35 @@
     ctx.translate(sx, sy);
 
     drawRoom();
-    drawEvent();
+
+    // extra warning stripes if pass/waves warn
+    if (game.monster){
+      if (game.monster.type === MonsterType.PASSER && game.monster.phase === "warn") drawWarningStripes(0.26);
+      if (game.monster.type === MonsterType.WAVES && game.monster.phase === "warn") drawWarningStripes(0.28);
+    }
+
+    // draw visible monster
+    if (game.monster && game.monster.type !== MonsterType.NONE){
+      const m = game.monster;
+      if (m.type === MonsterType.ROAMER || m.type === MonsterType.PASSER || m.type === MonsterType.WAVES){
+        // set y if not set
+        if (!m.y) m.y = Math.floor(game.room.floorY - 120);
+      }
+      drawMonsterSprite(m);
+    }
+
     drawPlayer();
 
     // lighting overlay
     ctx.save();
-    const dark = clamp(1 - game.lights, 0, 0.88);
+    const dark = clamp(1 - game.lights, 0, 0.90);
     ctx.fillStyle = `rgba(0,0,0,${dark})`;
-    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillRect(0,0,W,H);
     ctx.restore();
 
     vignette(0.30 + (1-game.lights)*0.45);
 
-    // end banners
+    // simple end banners
     if (game.state === "fail") drawBanner("OYUN BİTTİ", "Esc: Menü");
     if (game.state === "win") drawBanner("KAZANDIN", "100. kat");
 
@@ -1136,26 +1441,17 @@
     const tw = ctx.measureText(title).width;
     ctx.fillText(title, (W-tw)/2, y + Math.floor(bh*0.48));
 
-    ctx.fillStyle = game.palette ? game.palette.neon : "rgba(106,215,255,.9)";
+    ctx.fillStyle = game.pal ? game.pal.neon : "rgba(106,215,255,.9)";
     ctx.font = `${Math.max(14, Math.floor(Math.min(W,H)/56))}px system-ui, Arial`;
     const sw = ctx.measureText(sub).width;
     ctx.fillText(sub, (W-sw)/2, y + Math.floor(bh*0.68));
     ctx.restore();
   }
 
-  function loop(){
-    const t = now();
-    const dt = Math.min(33, t - last);
-    last = t;
-
-    pressed.clear();
-    // pressed is filled on keydown; we clear at start so we need to capture it differently
-    // Fix: store snapshot of pressed from last frame
-    // We'll do a simple approach: keep pressedKeys array on keydown and clear after update.
-    requestAnimationFrame(loop);
-  }
-
-  // Better input: keep pressedSet and clear after each frame
+  /* =========================
+     Main loop
+  ========================= */
+  let last = now();
   function frame(){
     const t = now();
     const dt = Math.min(33, t - last);
@@ -1164,88 +1460,26 @@
     update(dt);
     render();
 
-    // clear pressed after using
     pressed.clear();
     requestAnimationFrame(frame);
   }
+  requestAnimationFrame(frame);
 
   /* =========================
-     Menu
+     Menu controls
   ========================= */
-  const btnStart = document.getElementById("btnStart");
-  const btnHow = document.getElementById("btnHow");
-  const btnRestart = document.getElementById("btnRestart");
-  const howPanel = document.getElementById("howPanel");
-
-  btnHow.addEventListener("click", ()=>{
-    howPanel.classList.toggle("hide");
+  document.getElementById("btnHow").addEventListener("click", ()=>{
+    document.getElementById("howPanel").classList.toggle("hide");
   });
-
-  btnRestart.addEventListener("click", ()=>{
-    hardReset();
-  });
-
-  btnStart.addEventListener("click", ()=>{
-    startGame();
-  });
-
-  function toggleMenu(){
-    if (!game.running) return;
-    const open = !menu.classList.contains("hide");
-    if (open){
-      menu.classList.add("hide");
-      game.pausedMenu = false;
-      showToast("Devam", 900);
-    } else {
-      menu.classList.remove("hide");
-      game.pausedMenu = true;
-      showToast("Menü", 900);
-    }
-  }
-
-  function startGame(){
-    menu.classList.add("hide");
-    hud.classList.remove("hide");
-    game.running = true;
-    game.pausedMenu = false;
-    game.t = 0;
-
-    // initialize
-    enterFloor(game.floor);
-    showToast("Başladı. Amaç: 100. kat.", 1800);
-  }
-
-  function hardReset(){
-    game.running = true; // keep rendering even if menu open
-    game.floor = 1;
-    game.state = "ready";
-    game.t = 0;
-    game.lights = 1;
-    game.shake = 0;
-    game.event = null;
-    game.room = roomForFloor(1);
-    game.palette = paletteForFloor(1);
-
-    player.hp = 3;
-    player.keys = 0;
-    player.hidden = false;
-    player.invuln = 0;
-    player.face = 1;
-
-    enterFloor(1);
-    menu.classList.remove("hide");
-    game.pausedMenu = true;
-    showToast("Sıfırlandı.", 1200);
-  }
+  document.getElementById("btnReset").addEventListener("click", ()=> hardReset());
+  document.getElementById("btnStart").addEventListener("click", ()=> startGame());
 
   // Start in menu
   hud.classList.remove("hide");
   showToast("Menü: Başlat ile oyna.", 1600);
 
-  // Main frame
-  requestAnimationFrame(frame);
-
 })();
 </script>
 </body>
 </html>
+
