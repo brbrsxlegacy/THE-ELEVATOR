@@ -2,204 +2,266 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>THE ELEVATOR – Backrooms</title>
+<title>THE ELEVATOR – FULL CORE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html,body{
-  margin:0; padding:0; overflow:hidden;
-  background:#0b0b0b;
-  font-family:Arial,Helvetica,sans-serif;
-}
+html,body{margin:0;padding:0;overflow:hidden;background:#0b0b0b;font-family:Arial,Helvetica,sans-serif}
 canvas{display:block}
 
 /* HUD */
 #hud{
-  position:fixed; left:12px; top:10px;
-  color:#cfcfcf; font-size:13px;
-  background:rgba(0,0,0,.45);
-  padding:6px 8px; border:1px solid #333;
+  position:fixed;left:10px;top:10px;z-index:5;
+  color:#d6d6d6;background:rgba(0,0,0,.55);
+  border:1px solid #333;padding:6px 8px;font-size:13px
 }
 #prompt{
-  position:fixed; bottom:28px; left:50%;
-  transform:translateX(-50%);
-  color:#e6e6e6;
-  background:rgba(0,0,0,.7);
-  border:1px solid #444;
-  padding:6px 10px;
-  display:none;
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+  color:#e6e6e6;background:rgba(0,0,0,.7);
+  border:1px solid #444;padding:6px 10px;display:none
 }
+
+/* Chest UI */
+#chestWrap{
+  position:fixed;inset:0;display:none;place-items:center;z-index:8;
+  background:rgba(0,0,0,.75)
+}
+#chest{
+  background:#141414;border:1px solid #333;padding:12px;min-width:300px
+}
+#chest h3{margin:0 0 10px;font-size:14px;color:#cfcfcf;letter-spacing:2px;font-weight:normal}
+#slots{display:grid;grid-template-columns:repeat(3,70px);gap:8px}
+.slot{
+  width:70px;height:70px;border:1px solid #2b2b2b;background:#1a1a1a;
+  display:grid;place-items:center;color:#cfcfcf;font-size:11px;cursor:pointer
+}
+.slot.empty{opacity:.35;cursor:default}
+.hint{margin-top:10px;color:#9a9a9a;font-size:11px}
+
+/* Overlays */
+#dead,#ending{
+  position:fixed;inset:0;display:none;place-items:center;z-index:9;
+  background:#000;color:#eee;letter-spacing:2px;text-align:center
+}
+#dead.show,#ending.show{display:grid}
+#ending p{font-size:28px}
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
 <div id="hud">KAT: 1 / 100<br>ENVANTER: -</div>
-<div id="prompt">[E] ASANSÖR</div>
+<div id="prompt">[E]</div>
+
+<div id="chestWrap">
+  <div id="chest">
+    <h3>SANDIK</h3>
+    <div id="slots"></div>
+    <div class="hint">ESC ile kapat</div>
+  </div>
+</div>
+
+<div id="dead">YAKALANDIN</div>
+<div id="ending"><p>“Hiçbir zaman yukarı çıkmıyordun.”</p></div>
 
 <script>
-/* ===== CANVAS ===== */
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-function resize(){
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-}
-addEventListener("resize",resize);
-resize();
+"use strict";
 
-/* ===== INPUT ===== */
-const keys = {};
-addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+/* ================= CANVAS ================= */
+const cv=document.getElementById("game");
+const ctx=cv.getContext("2d");
+function resize(){cv.width=innerWidth;cv.height=innerHeight}
+addEventListener("resize",resize);resize();
+
+/* ================= INPUT ================= */
+const keys=Object.create(null);
+addEventListener("keydown",e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(e.key==="Escape" && game.state==="CHEST") closeChest();
+});
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-/* ===== TILE MAP ===== */
-/* 1 = DUVAR | 0 = BOŞ */
-const TILE = 48;
-const MAP = [
-"1111111111111111111111111111",
-"1000000000000000000000000001",
-"1000000000000000111110000001",
-"1000000000000000100010000001",
-"1000011111100000100010000001",
-"1000010000100000000010000001",
-"1000010000100000000010000001",
-"1000010000111111111110000001",
-"1000010000000000000000000001",
-"1000010000000000000000000001",
-"1000011111111111111111100001",
-"1000000000000000000000000001",
-"1111111111111111111111111111"
+/* ================= CONSTANTS ================= */
+const TILE=48, GRAVITY=1400;
+
+/* ================= MAP (1=DUVAR) ================= */
+const MAP=[
+"111111111111111111111111111111",
+"100000000000000000000000000001",
+"100000000001111111100000000001",
+"100000000001000000100000000001",
+"100000000001000000100000000001",
+"100001111111000000111111100001",
+"100001000000000000000000100001",
+"100001000000000000000000100001",
+"100001000000011111100000100001",
+"100001000000010000100000100001",
+"100001000000010000100000100001",
+"100001111111110000111111100001",
+"100000000000000000000000000001",
+"111111111111111111111111111111"
 ];
 
-/* ===== PLAYER ===== */
-const player = {
-  x: TILE * 2,
-  y: TILE * 2,
-  w: 26,
-  h: 38,
-  vx: 0,
-  vy: 0,
-  speed: 220,
-  jump: -520,
-  onGround: false
-};
+/* ================= PLAYER ================= */
+const player={x:TILE*2,y:TILE*2,w:26,h:38,vx:0,vy:0,speed:240,jump:-560,onGround:false};
 
-/* ===== CAMERA ===== */
+/* ================= CAMERA ================= */
 const cam={x:0,y:0};
 
-/* ===== ELEVATOR (DUVAR DIŞI SABİT) ===== */
-const elevator={
-  x:MAP[0].length*TILE-140,
-  y:MAP.length*TILE-96,
-  w:48,h:72
+/* ================= GAME STATE ================= */
+const game={
+  floor:1,
+  state:"PLAY", // PLAY | CHEST | ELEVATOR | DEAD | END
+  inv:{key:false,card:false},
+  flicker:0,
+  shake:0
 };
 
-/* ===== COLLISION ===== */
-function solidAt(x, y){
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return true;
+/* ================= WORLD OBJECTS ================= */
+let chest={x:TILE*6,y:TILE*9,open:false,taken:false};
+let elevator={x:(MAP[0].length*TILE)-140,y:(MAP.length*TILE)-96,w:48,h:72};
+let monster={x:TILE*12,y:TILE*9,w:28,h:34,spd:80};
 
-  const tx = Math.floor(x / TILE);
-  const ty = Math.floor(y / TILE);
-
-  if (
-    ty < 0 || ty >= MAP.length ||
-    tx < 0 || tx >= MAP[0].length
-  ) return true;
-
-  return MAP[ty][tx] === "1";
+/* ================= COLLISION ================= */
+function solidAt(x,y){
+  if(!Number.isFinite(x)||!Number.isFinite(y)) return true;
+  const tx=Math.floor(x/TILE), ty=Math.floor(y/TILE);
+  if(ty<0||ty>=MAP.length||tx<0||tx>=MAP[0].length) return true;
+  return MAP[ty][tx]==="1";
 }
 
-
-function movePlayer(dt){
+/* ================= MOVEMENT ================= */
+function updatePlayer(dt){
   player.vx=0;
   if(keys["a"]) player.vx=-player.speed;
   if(keys["d"]) player.vx= player.speed;
+  if((keys[" "]||keys["space"]) && player.onGround){player.vy=player.jump;player.onGround=false}
+  player.vy+=GRAVITY*dt;
 
-  if((keys[" "]||keys["space"]) && player.onGround){
-    player.vy=player.jump;
-    player.onGround=false;
-  }
-
-  player.vy+=1200*dt;
-
-  // X
   player.x+=player.vx*dt;
-  if(
-    solidAt(player.x,player.y)||
-    solidAt(player.x+player.w,player.y)||
-    solidAt(player.x,player.y+player.h)||
-    solidAt(player.x+player.w,player.y+player.h)
-  ){
+  if(solidAt(player.x,player.y)||solidAt(player.x+player.w,player.y)||
+     solidAt(player.x,player.y+player.h)||solidAt(player.x+player.w,player.y+player.h)){
     player.x-=player.vx*dt;
   }
 
-// Y hareket
-player.y += player.vy * dt;
-
-if (
-  solidAt(player.x + 2, player.y + player.h) ||
-  solidAt(player.x + player.w - 2, player.y + player.h)
-){
-  player.y = Math.floor((player.y + player.h) / TILE) * TILE - player.h;
-  player.vy = 0;
-  player.onGround = true;
-} else {
-  player.onGround = false;
+  player.y+=player.vy*dt;
+  if(solidAt(player.x+2,player.y+player.h)||solidAt(player.x+player.w-2,player.y+player.h)){
+    player.y=Math.floor((player.y+player.h)/TILE)*TILE-player.h;
+    player.vy=0; player.onGround=true;
+  } else player.onGround=false;
 }
 
-
-/* ===== GAME LOOP ===== */
-let last=performance.now();
-function loop(t){
-  const dt=Math.min((t-last)/1000,0.033);
-  last=t;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-
-function update(dt){
-  movePlayer(dt);
-  cam.x += ((player.x - innerWidth/2) - cam.x)*0.08;
-  cam.y += ((player.y - innerHeight/2) - cam.y)*0.08;
-
-  // Elevator prompt
-  const dx=player.x-elevator.x;
-  const dy=player.y-elevator.y;
-  if(Math.hypot(dx,dy)<60){
-    document.getElementById("prompt").style.display="block";
-  }else{
-    document.getElementById("prompt").style.display="none";
+/* ================= MONSTER ================= */
+function updateMonster(dt){
+  const dx=player.x-monster.x, dy=player.y-monster.y;
+  const d=Math.hypot(dx,dy)||1;
+  monster.x+=(dx/d)*monster.spd*dt;
+  monster.y+=(dy/d)*monster.spd*dt;
+  if(d<18 && game.state==="PLAY"){
+    game.state="DEAD";
+    document.getElementById("dead").classList.add("show");
   }
 }
 
-function draw(){
-  ctx.fillStyle="#0b0b0b";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+/* ================= CHEST ================= */
+const chestWrap=document.getElementById("chestWrap");
+const slotsEl=document.getElementById("slots");
+let chestSlots=[];
+function openChest(){
+  game.state="CHEST";
+  chestWrap.style.display="grid";
+  chestSlots=Array.from({length:9},()=>null);
+  chestSlots[Math.floor(Math.random()*9)]=(game.floor%2?"key":"card");
+  renderSlots();
+}
+function closeChest(){
+  chestWrap.style.display="none";
+  game.state="PLAY";
+  if(game.inv.key||game.inv.card) chest.taken=true;
+}
+function renderSlots(){
+  slotsEl.innerHTML="";
+  chestSlots.forEach((it,i)=>{
+    const d=document.createElement("div");
+    d.className="slot"+(it?"":" empty");
+    d.textContent=it?it.toUpperCase():"";
+    if(it){
+      d.onclick=()=>{game.inv[it]=true;chestSlots[i]=null;renderSlots()};
+    }
+    slotsEl.appendChild(d);
+  });
+}
 
-  ctx.save();
-  ctx.translate(-cam.x,-cam.y);
+/* ================= UPDATE ================= */
+function update(dt){
+  if(game.state==="PLAY"){
+    updatePlayer(dt);
+    updateMonster(dt);
+    cam.x+=((player.x+player.w/2)-innerWidth/2-cam.x)*0.08;
+    cam.y+=((player.y+player.h/2)-innerHeight/2-cam.y)*0.08;
 
-  // MAP
-  for(let y=0;y<MAP.length;y++){
-    for(let x=0;x<MAP[y].length;x++){
-      if(MAP[y][x]==="1"){
-        ctx.fillStyle="#121212";
-        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
-        ctx.strokeStyle="#1f1f1f";
-        ctx.strokeRect(x*TILE,y*TILE,TILE,TILE);
-      }
+    const need=(game.floor%2?"key":"card");
+    const nearChest=Math.hypot(player.x-chest.x,player.y-chest.y)<50 && !chest.taken;
+    const nearElev=Math.hypot(player.x-elevator.x,player.y-elevator.y)<60;
+
+    const p=document.getElementById("prompt");
+    if(nearChest){p.textContent="[E] AÇ";p.style.display="block"}
+    else if(nearElev){
+      p.textContent=game.inv[need]?"[E] ASANSÖR":`[${need.toUpperCase()} GEREKLİ]`;
+      p.style.display="block";
+    } else p.style.display="none";
+
+    if(keys["e"]){
+      if(nearChest) openChest();
+      if(nearElev && game.inv[need]) game.state="ELEVATOR";
     }
   }
 
-  // ELEVATOR
+  if(game.state==="ELEVATOR"){
+    game.shake+=dt*8;
+    if(game.floor>=100){
+      document.getElementById("ending").classList.add("show");
+      game.state="END";
+    }else{
+      game.floor++;
+      game.inv.key=false;game.inv.card=false;
+      game.state="PLAY";
+      player.x=TILE*2;player.y=TILE*2;
+    }
+  }
+
+  document.getElementById("hud").innerHTML=
+    `KAT: ${game.floor} / 100<br>ENVANTER: ${
+      (game.inv.key?"Anahtar ":"")+(game.inv.card?"Kart":"")||"-"
+    }`;
+}
+
+/* ================= DRAW ================= */
+function draw(){
+  ctx.fillStyle="#0b0b0b";ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.save();
+  const sx=(game.state==="ELEVATOR"?Math.sin(game.shake)*3:0);
+  ctx.translate(-cam.x+sx,-cam.y);
+
+  for(let y=0;y<MAP.length;y++)for(let x=0;x<MAP[y].length;x++)
+    if(MAP[y][x]==="1"){
+      ctx.fillStyle="#141414";
+      ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+      ctx.strokeStyle="#1f1f1f";ctx.strokeRect(x*TILE,y*TILE,TILE,TILE);
+    }
+
+  if(!chest.taken){
+    ctx.fillStyle="#2a2a2a";ctx.fillRect(chest.x,chest.y,32,24);
+  }
+
   ctx.fillStyle="#3a3a3a";
   ctx.fillRect(elevator.x,elevator.y,elevator.w,elevator.h);
-  ctx.fillStyle="#777";
-  ctx.fillRect(elevator.x+6,elevator.y+6,14,60);
-  ctx.fillRect(elevator.x+28,elevator.y+6,14,60);
 
-  // PLAYER
+  ctx.fillStyle="#0a0a0a";
+  ctx.fillRect(monster.x,monster.y,monster.w,monster.h);
+  ctx.fillStyle="#fff";
+  ctx.fillRect(monster.x+6,monster.y+10,4,4);
+  ctx.fillRect(monster.x+16,monster.y+10,4,4);
+
   ctx.fillStyle="#0a0a0a";
   ctx.fillRect(player.x,player.y,player.w,player.h);
   ctx.fillStyle="#fff";
@@ -208,21 +270,19 @@ function draw(){
 
   ctx.restore();
 
-  // VIGNETTE
-  const g=ctx.createRadialGradient(
-    canvas.width/2,canvas.height/2,120,
-    canvas.width/2,canvas.height/2,
-    Math.max(canvas.width,canvas.height)*0.7
-  );
-  g.addColorStop(0,"rgba(0,0,0,0)");
-  g.addColorStop(1,"rgba(0,0,0,.85)");
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  const g=ctx.createRadialGradient(cv.width/2,cv.height/2,120,cv.width/2,cv.height/2,Math.max(cv.width,cv.height)*0.75);
+  g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.88)");
+  ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
 }
 
-loop();
+/* ================= LOOP ================= */
+let last=performance.now();
+function loop(t){
+  const dt=Math.min((t-last)/1000,0.033); last=t;
+  update(dt); draw(); requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-
 
