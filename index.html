@@ -112,7 +112,7 @@
     const inventory = {key:false,card:false};
     let chestSlots = [];
 
-    const player = {x:100,y:300,speed:128};
+    const player = {x:100,y:300,speed:128,r:9};
     const cam = {x:0,y:0};
     let chunks = new Map();
     let monsters = [];
@@ -180,6 +180,7 @@
       if(chunks.has(key)) return;
       const r = rng(floorSeed + ix*131);
       const halls = [];
+      const walls = [];
       const blocks = 4 + Math.floor(r()*4);
       let x = ix*CHUNK_W + 40;
       for(let i=0;i<blocks;i++){
@@ -187,9 +188,45 @@
         const h = 90 + r()*180;
         const y = 40 + r()*(FLOOR_H-h-40);
         halls.push({x,y,w,h,tone:Math.floor(r()*20)-10});
+
+        const edge = 8;
+        walls.push({x:x-edge,y:y-edge,w:w+edge*2,h:edge,noise:r()*999});
+        walls.push({x:x-edge,y:y+h,w:w+edge*2,h:edge,noise:r()*999});
+        walls.push({x:x-edge,y:y,w:edge,h:h,noise:r()*999});
+        walls.push({x:x+w,y:y,w:edge,h:h,noise:r()*999});
+
+        const obstacles = 1 + Math.floor(r()*2);
+        for(let j=0;j<obstacles;j++){
+          const ow = 18 + r()*34;
+          const oh = 18 + r()*34;
+          const ox = x + 14 + r()*Math.max(4,w-ow-28);
+          const oy = y + 14 + r()*Math.max(4,h-oh-28);
+          walls.push({x:ox,y:oy,w:ow,h:oh,noise:r()*999});
+        }
+
         x += w + 35 + r()*70;
       }
-      chunks.set(key,{ix,halls,noise:r()*999});
+      chunks.set(key,{ix,halls,walls,noise:r()*999});
+    }
+
+    function circleRectHit(px,py,pr,rect){
+      const nx = Math.max(rect.x, Math.min(px, rect.x + rect.w));
+      const ny = Math.max(rect.y, Math.min(py, rect.y + rect.h));
+      const dx = px - nx;
+      const dy = py - ny;
+      return (dx*dx + dy*dy) < pr*pr;
+    }
+
+    function collidesWithWall(x,y){
+      const ix = Math.floor(x / CHUNK_W);
+      for(let d=-2; d<=2; d++){
+        const entry = chunks.get(`${ix+d},0`);
+        if(!entry) continue;
+        for(const wall of entry.walls){
+          if(circleRectHit(x,y,player.r,wall)) return true;
+        }
+      }
+      return false;
     }
 
     function ensureChunks(){
@@ -205,8 +242,15 @@
         if(keys.has('w') || keys.has('arrowup')) vy -= 1;
         if(keys.has('s') || keys.has('arrowdown')) vy += 1;
         const len = Math.hypot(vx,vy) || 1;
-        player.x += (vx/len) * player.speed * dt;
-        player.y += (vy/len) * player.speed * dt;
+        const stepX = (vx/len) * player.speed * dt;
+        const stepY = (vy/len) * player.speed * dt;
+
+        const nx = player.x + stepX;
+        if(!collidesWithWall(nx, player.y)) player.x = nx;
+
+        const ny = player.y + stepY;
+        if(!collidesWithWall(player.x, ny)) player.y = ny;
+
         player.y = Math.max(40, Math.min(FLOOR_H-40, player.y));
 
         ensureChunks();
@@ -339,12 +383,33 @@
       const currentIx = Math.floor(player.x / CHUNK_W);
       for(const entry of chunks.values()){
         const dist = Math.abs(entry.ix - currentIx);
+
         for(const h of entry.halls){
           const base = 124 + h.tone;
           cx.fillStyle = `rgb(${base+16},${base+12},${base-10})`;
           cx.fillRect(h.x,h.y,h.w,h.h);
           cx.strokeStyle = 'rgba(48,44,31,.55)';
           cx.strokeRect(h.x,h.y,h.w,h.h);
+        }
+
+        for(const wall of entry.walls){
+          const grad = cx.createLinearGradient(wall.x, wall.y, wall.x + wall.w, wall.y + wall.h);
+          grad.addColorStop(0, '#141311');
+          grad.addColorStop(1, '#080807');
+          cx.fillStyle = grad;
+          cx.fillRect(wall.x,wall.y,wall.w,wall.h);
+
+          const speckCount = Math.max(1, Math.floor((wall.w * wall.h) / 180));
+          for(let i=0;i<speckCount;i++){
+            const n = Math.sin((wall.noise + i*31.7) * 0.73);
+            const fx = ((n * 43758.5453) % 1 + 1) % 1;
+            const fy = ((Math.sin((wall.noise + i*19.3) * 1.17) * 9631.12) % 1 + 1) % 1;
+            const a = 0.04 + (((Math.sin((wall.noise + i*7.1)*3.7)+1)*0.5) * 0.09);
+            cx.fillStyle = `rgba(182,170,126,${a})`;
+            cx.fillRect(wall.x + fx*wall.w, wall.y + fy*wall.h, 2, 2);
+          }
+          cx.strokeStyle = 'rgba(24,24,21,.8)';
+          cx.strokeRect(wall.x,wall.y,wall.w,wall.h);
         }
         if(dist > 0){
           cx.fillStyle = `rgba(35,33,25,${Math.min(0.7, dist*0.22)})`;
@@ -382,7 +447,7 @@
       const jitter = Math.sin(performance.now()*0.006)*0.9;
       cx.fillStyle = '#171715';
       cx.beginPath();
-      cx.ellipse(player.x, player.y+jitter, 10, 14, 0, 0, Math.PI*2);
+      cx.ellipse(player.x, player.y+jitter, player.r+1, 14, 0, 0, Math.PI*2);
       cx.fill();
     }
 
