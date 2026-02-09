@@ -72,12 +72,16 @@ const MAP = [
 ];
 
 /* ===== PLAYER ===== */
-const player={
-  x:100,y:100,w:26,h:38,
-  vx:0,vy:0,
-  speed:220,
-  jump:-520,
-  onGround:false
+const player = {
+  x: TILE * 2,
+  y: TILE * 2,
+  w: 26,
+  h: 38,
+  vx: 0,
+  vy: 0,
+  speed: 220,
+  jump: -520,
+  onGround: false
 };
 
 /* ===== CAMERA ===== */
@@ -91,12 +95,20 @@ const elevator={
 };
 
 /* ===== COLLISION ===== */
-function solidAt(x,y){
-  const tx=Math.floor(x/TILE);
-  const ty=Math.floor(y/TILE);
-  if(ty<0||ty>=MAP.length||tx<0||tx>=MAP[0].length) return true;
-  return MAP[ty][tx]==="1";
+function solidAt(x, y){
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return true;
+
+  const tx = Math.floor(x / TILE);
+  const ty = Math.floor(y / TILE);
+
+  if (
+    ty < 0 || ty >= MAP.length ||
+    tx < 0 || tx >= MAP[0].length
+  ) return true;
+
+  return MAP[ty][tx] === "1";
 }
+
 
 function movePlayer(dt){
   player.vx=0;
@@ -121,17 +133,20 @@ function movePlayer(dt){
     player.x-=player.vx*dt;
   }
 
-  // Y
-  player.y+=player.vy*dt;
-  if(
-    solidAt(player.x,player.y+player.h)||
-    solidAt(player.x+player.w,player.y+player.h)
-  ){
-    player.y=Math.floor((player.y+player.h)/TILE)*TILE-player.h;
-    player.vy=0;
-    player.onGround=true;
-  }
+// Y hareket
+player.y += player.vy * dt;
+
+if (
+  solidAt(player.x + 2, player.y + player.h) ||
+  solidAt(player.x + player.w - 2, player.y + player.h)
+){
+  player.y = Math.floor((player.y + player.h) / TILE) * TILE - player.h;
+  player.vy = 0;
+  player.onGround = true;
+} else {
+  player.onGround = false;
 }
+
 
 /* ===== GAME LOOP ===== */
 let last=performance.now();
@@ -209,4 +224,5 @@ loop();
 </script>
 </body>
 </html>
+
 
