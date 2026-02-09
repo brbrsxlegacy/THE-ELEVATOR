@@ -1,1677 +1,449 @@
-diff --git a/index.html b/index.html
-index 94c44f9b401d21344efd61b5668c705065c9bc94..83a79fb204a4eb45f6eb5fb38f5c5b4a86040696 100644
---- a/index.html
-+++ b/index.html
-@@ -1,1291 +1,380 @@
--<!doctype html>
--<html lang="tr">
--<head>
--<meta charset="utf-8"/>
--<meta name="viewport" content="width=device-width,initial-scale=1"/>
--<title>The Elevator</title>
--<style>
--  :root{
--    --bg:#05060a;
--    --fg:#eaf2ff;
--    --muted:#a8b6c6;
--    --glass: rgba(18,24,44,.72);
--    --glass2: rgba(10,14,26,.82);
--    --line: rgba(255,255,255,.10);
--    --line2: rgba(255,255,255,.18);
--  }
--  *{box-sizing:border-box}
--  html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
--  canvas{width:100vw; height:100vh; display:block; background:#02030a; image-rendering:pixelated; image-rendering:crisp-edges;}
--
--  .hud{
--    position:fixed; left:12px; top:12px; z-index:20;
--    display:flex; gap:10px; flex-wrap:wrap;
--    pointer-events:none; user-select:none;
--  }
--  .chip{
--    background:var(--glass);
--    border:1px solid var(--line);
--    border-radius:999px;
--    padding:8px 12px;
--    font-size:13px;
--    letter-spacing:.2px;
--    backdrop-filter: blur(10px);
--  }
--  .chip b{font-weight:900}
--
--  .toast{
--    position:fixed; right:12px; top:12px; z-index:30;
--    max-width:min(640px, calc(100vw - 24px));
--    background:var(--glass2);
--    border:1px solid var(--line);
--    border-radius:14px;
--    padding:10px 12px;
--    font-size:13px;
--    line-height:1.35;
--    opacity:0;
--    transform:translateY(-8px);
--    transition:.16s ease;
--    pointer-events:none; user-select:none;
--    white-space:pre-line;
--    backdrop-filter: blur(12px);
--  }
--  .toast.show{opacity:1; transform:translateY(0);}
--
--  .menu{
--    position:fixed; inset:0; z-index:50;
--    display:flex; align-items:center; justify-content:center;
--    background:
--      radial-gradient(900px 700px at 20% 20%, rgba(106,215,255,.20), transparent 60%),
--      radial-gradient(900px 700px at 85% 70%, rgba(255,79,123,.16), transparent 58%),
--      radial-gradient(900px 700px at 40% 90%, rgba(255,227,123,.12), transparent 55%),
--      linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.72));
--  }
--  .card{
--    width:min(920px, calc(100vw - 24px));
--    background:rgba(10,14,26,.86);
--    border:1px solid rgba(255,255,255,.14);
--    border-radius:18px;
--    padding:16px;
--    box-shadow:0 26px 90px rgba(0,0,0,.62);
--    backdrop-filter: blur(12px);
--  }
--  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
--  .title{font-size:28px; font-weight:950; letter-spacing:.6px;}
--  .sub{color:var(--muted); margin-top:6px; font-size:14px; line-height:1.45;}
--  .grid{display:grid; grid-template-columns: 1.05fr .95fr; gap:12px; margin-top:12px;}
--  @media (max-width:920px){.grid{grid-template-columns:1fr;}}
--  .panel{
--    border:1px solid rgba(255,255,255,.10);
--    background:rgba(255,255,255,.03);
--    border-radius:16px;
--    padding:14px;
--  }
--  .panel h3{margin:0 0 8px; font-size:14px; letter-spacing:.2px;}
--  .panel p{margin:0; color:var(--muted); font-size:13px; line-height:1.5;}
--  .kbd{
--    display:inline-block;
--    padding:2px 7px;
--    border-radius:8px;
--    border:1px solid rgba(255,255,255,.16);
--    background:rgba(0,0,0,.25);
--    color:var(--fg);
--    font-size:12px;
--    margin:0 2px;
--    font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
--  }
--  .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
--  button{
--    appearance:none;
--    border:1px solid rgba(255,255,255,.14);
--    background:rgba(0,0,0,.25);
--    color:var(--fg);
--    padding:10px 12px;
--    border-radius:14px;
--    cursor:pointer;
--    font-weight:900;
--    font-size:13px;
--    transition:.14s ease;
--  }
--  button:hover{transform:translateY(-1px); border-color: rgba(106,215,255,.38);}
--  button:active{transform:translateY(0);}
--  .danger{border-color: rgba(255,79,123,.34);}
--  .danger:hover{border-color: rgba(255,79,123,.56);}
--  .toggle{
--    display:flex; align-items:center; justify-content:space-between;
--    gap:10px; padding:10px 10px; border-radius:14px;
--    border:1px solid rgba(255,255,255,.10);
--    background:rgba(0,0,0,.18);
--    margin-top:10px;
--  }
--  input[type="range"]{width:180px;}
--  .small{margin-top:10px; color:var(--muted); font-size:12px; line-height:1.5;}
--  .hide{display:none!important;}
--</style>
--</head>
--<body>
--<canvas id="cv"></canvas>
--
--<div class="hud" id="hud">
--  <div class="chip">Kat: <b id="uiFloor">1</b>/100</div>
--  <div class="chip">Can: <b id="uiHP">3</b></div>
--  <div class="chip">Dayanıklılık: <b id="uiStam">100</b></div>
--  <div class="chip">Pil: <b id="uiBat">100</b></div>
--  <div class="chip">Envanter: <b id="uiInv">-</b></div>
--  <div class="chip">Görev: <b id="uiGoal">-</b></div>
--  <div class="chip">Tehdit: <b id="uiThreat">Yok</b></div>
--</div>
--
--<div class="toast" id="toast"></div>
--
--<div class="menu" id="menu">
--  <div class="card">
--    <div class="row">
--      <div>
--        <div class="title">The Elevator</div>
--        <div class="sub">
--          Tam ekran 2D pikselli korku-kaçış. 100 kata kadar çık.
--          Her kat farklı oda şablonu + farklı görev + görünür canavar.
--        </div>
--      </div>
--      <div class="btns">
--        <button id="btnContinue">Devam</button>
--        <button id="btnNew">Yeni Oyun</button>
--        <button id="btnHow">Kontroller</button>
--        <button id="btnSettings">Ayarlar</button>
--        <button id="btnWipe" class="danger">Kaydı Sil</button>
--      </div>
--    </div>
--
--    <div class="grid">
--      <div class="panel hide" id="howPanel">
--        <h3>Kontroller</h3>
--        <p>
--          Hareket: <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span><br>
--          Sprint: <span class="kbd">Shift</span> (dayanıklılık harcar)<br>
--          Etkileşim: <span class="kbd">W</span> / <span class="kbd">↑</span><br>
--          Saklan (dolap): <span class="kbd">Space</span><br>
--          Fener Aç/Kapat: <span class="kbd">F</span> (pil harcar)<br>
--          Asansör: <span class="kbd">Enter</span><br>
--          Menü: <span class="kbd">Esc</span>
--        </p>
--        <div class="small">
--          Görev bitmeden asansör çalışmaz. Bazı katlar “karanlık” gelir, fener önemli olur.
--        </div>
--      </div>
--
--      <div class="panel hide" id="settingsPanel">
--        <h3>Ayarlar</h3>
--        <div class="toggle">
--          <div>Ses</div>
--          <input id="rngVol" type="range" min="0" max="100" value="50"/>
--        </div>
--        <div class="toggle">
--          <div>Zorluk</div>
--          <input id="rngDiff" type="range" min="1" max="5" value="3"/>
--        </div>
--        <div class="toggle">
--          <div>Shake</div>
--          <input id="rngShake" type="range" min="0" max="100" value="65"/>
--        </div>
--        <div class="small">
--          Zorluk artınca canavar hızı/algısı yükselir, pil daha hızlı biter.
--        </div>
--      </div>
--
--      <div class="panel">
--        <h3>Oyunun Fikri</h3>
--        <p>
--          Kapalı bir asansör döngüsünde her kat farklı tuzak.
--          Kat görevleri: anahtar, sigorta onarımı, şifre, kol, terminal taraması, kısa “toplama” görevleri.
--          Tehditler: dolaşan avcı, hızlı geçiş, bakış cezası, dalga geçişleri.
--        </p>
--        <div class="small">
--          Bu sürüm “büyük oyun çekirdeği”. Devamında kat türlerini 2 katına çıkarıp canavar sprite’larını çeşitlendiririz.
--        </div>
--      </div>
--    </div>
--  </div>
--</div>
--
--<script>
--(() => {
--  "use strict";
--
--  const cv = document.getElementById("cv");
--  const ctx = cv.getContext("2d");
--  function fitCanvas(){
--    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
--    cv.width = Math.floor(window.innerWidth * dpr);
--    cv.height = Math.floor(window.innerHeight * dpr);
--  }
--  window.addEventListener("resize", fitCanvas);
--  fitCanvas();
--
--  const hud = document.getElementById("hud");
--  const menu = document.getElementById("menu");
--  const toast = document.getElementById("toast");
--
--  const uiFloor = document.getElementById("uiFloor");
--  const uiHP = document.getElementById("uiHP");
--  const uiStam = document.getElementById("uiStam");
--  const uiBat = document.getElementById("uiBat");
--  const uiInv = document.getElementById("uiInv");
--  const uiGoal = document.getElementById("uiGoal");
--  const uiThreat = document.getElementById("uiThreat");
--
--  const btnContinue = document.getElementById("btnContinue");
--  const btnNew = document.getElementById("btnNew");
--  const btnHow = document.getElementById("btnHow");
--  const btnSettings = document.getElementById("btnSettings");
--  const btnWipe = document.getElementById("btnWipe");
--  const howPanel = document.getElementById("howPanel");
--  const settingsPanel = document.getElementById("settingsPanel");
--
--  const rngVol = document.getElementById("rngVol");
--  const rngDiff = document.getElementById("rngDiff");
--  const rngShake = document.getElementById("rngShake");
--
--  let toastTimer = 0;
--  function showToast(text, ms=2200){
--    toast.textContent = text;
--    toast.classList.add("show");
--    toastTimer = ms;
--  }
--
--  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
--  const lerp=(a,b,t)=>a+(b-a)*t;
--  const rand=(a,b)=>a+Math.random()*(b-a);
--  const randi=(a,b)=>Math.floor(rand(a,b+1));
--  function now(){ return performance.now(); }
--
--  function hashStr(s){
--    let h=2166136261>>>0;
--    for(let i=0;i<s.length;i++){
--      h ^= s.charCodeAt(i);
--      h = Math.imul(h, 16777619);
--    }
--    return h>>>0;
--  }
--  function seededRand(seed){
--    let x = seed>>>0;
--    return () => {
--      x ^= x << 13; x >>>= 0;
--      x ^= x >> 17; x >>>= 0;
--      x ^= x << 5;  x >>>= 0;
--      return (x >>> 0) / 4294967296;
--    };
--  }
--
--  const AudioSys = (() => {
--    let ac = null;
--    let master = null;
--    let vol = 0.5;
--
--    function ensure(){
--      if (ac) return;
--      ac = new (window.AudioContext || window.webkitAudioContext)();
--      master = ac.createGain();
--      master.gain.value = vol;
--      master.connect(ac.destination);
--    }
--    function setVol(v01){
--      vol = clamp(v01,0,1);
--      if (master) master.gain.value = vol;
--    }
--    function beep(freq=440, ms=90, type="square", gain=0.08){
--      ensure();
--      const o = ac.createOscillator();
--      const g = ac.createGain();
--      o.type = type;
--      o.frequency.value = freq;
--      g.gain.value = gain;
--      o.connect(g);
--      g.connect(master);
--
--      const t0 = ac.currentTime;
--      g.gain.setValueAtTime(0.0001, t0);
--      g.gain.exponentialRampToValueAtTime(gain, t0+0.01);
--      g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
--
--      o.start(t0);
--      o.stop(t0 + ms/1000 + 0.02);
--    }
--    function thump(){
--      beep(78, 120, "sine", 0.12);
--      beep(52, 140, "sine", 0.10);
--    }
--    function hiss(ms=260){
--      ensure();
--      const bufferSize = 2 * ac.sampleRate;
--      const noiseBuffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
--      const output = noiseBuffer.getChannelData(0);
--      for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1);
--      const whiteNoise = ac.createBufferSource();
--      whiteNoise.buffer = noiseBuffer;
--      const g = ac.createGain();
--      g.gain.value = 0.02;
--      whiteNoise.connect(g);
--      g.connect(master);
--      whiteNoise.start();
--      whiteNoise.stop(ac.currentTime + ms/1000);
--    }
--    return { setVol, beep, thump, hiss, ensure };
--  })();
--
--  const keys = new Set();
--  const pressed = new Set();
--  window.addEventListener("keydown",(e)=>{
--    const k=(e.key||"").toLowerCase();
--    if (!keys.has(k)) pressed.add(k);
--    keys.add(k);
--
--    if (["arrowleft","arrowright","arrowup"," ","spacebar"].includes(k) || e.key===" ") e.preventDefault();
--    AudioSys.ensure();
--  }, {passive:false});
--  window.addEventListener("keyup",(e)=>keys.delete((e.key||"").toLowerCase()));
--  const isDown=(k)=>keys.has(k);
--  const wasPressed=(k)=>pressed.has(k);
--
--  const nameA=["Noct","Vanta","Ruin","Gloom","Sable","Grim","Dread","Murk","Void","Shade","Crypt","Cinder","Hollow","Wraith","Ash","Frost","Abyss","Veil"];
--  const nameB=["Runner","Seer","Stalker","Crawler","Drifter","Whisper","Warden","Echo","Binder","Harrier","Mangler","Sunder","Lurker","Watcher","Strider","Snare","Hound","Taker"];
--  const nameC=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
--  function monsterNameForFloor(floor){
--    const rnd = seededRand(hashStr("MonsterName:"+floor));
--    return `${nameA[Math.floor(rnd()*nameA.length)]} ${nameB[Math.floor(rnd()*nameB.length)]} ${nameC[Math.floor(rnd()*nameC.length)]}`;
--  }
--
--  function paletteForFloor(floor, theme){
--    const rnd = seededRand(hashStr("Pal:"+floor+":"+theme));
--    const hues = [195,320,42,265,155,10,230,285,90,340,180,210];
--    const baseHue = hues[Math.floor(rnd()*hues.length)];
--    const accentHue = (baseHue + 60 + Math.floor(rnd()*90)) % 360;
--    const sat1 = 70 + Math.floor(rnd()*22);
--    const sat2 = 70 + Math.floor(rnd()*25);
--    const bg1 = `hsl(${baseHue} ${sat1}% ${10 + Math.floor(rnd()*6)}%)`;
--    const bg2 = `hsl(${(baseHue+22)%360} ${sat1}% ${6 + Math.floor(rnd()*5)}%)`;
--    const wall = `hsl(${(baseHue+8)%360} ${sat1}% ${14 + Math.floor(rnd()*6)}%)`;
--    const panel = `hsl(${(baseHue+14)%360} ${sat1}% ${18 + Math.floor(rnd()*6)}%)`;
--    const neon = `hsl(${accentHue} ${sat2}% ${62 + Math.floor(rnd()*12)}%)`;
--    const warn = `hsl(${(accentHue+170)%360} ${88}% ${60}%)`;
--    const good = `hsl(${(accentHue+40)%360} ${80}% ${62}%)`;
--    return {bg1,bg2,wall,panel,neon,warn,good};
--  }
--
--  const Themes = {
--    LOBBY:"lobby",
--    MAINT:"maint",
--    HOSP:"hosp",
--    OFFICE:"office",
--    DARK:"dark",
--    RED:"red"
--  };
--
--  function themeForFloor(floor){
--    const rnd = seededRand(hashStr("Theme:"+floor));
--    if (floor === 1) return Themes.LOBBY;
--    if (floor % 15 === 0) return Themes.RED;
--    if (floor % 9 === 0) return Themes.DARK;
--    const r = rnd();
--    if (r < 0.25) return Themes.OFFICE;
--    if (r < 0.50) return Themes.MAINT;
--    if (r < 0.75) return Themes.HOSP;
--    return Themes.OFFICE;
--  }
--
--  function roomForFloor(floor, theme){
--    const rnd = seededRand(hashStr("Room:"+floor+":"+theme));
--    const W=cv.width, H=cv.height;
--    const floorY = Math.floor(H*(0.80 + (rnd()*0.03 - 0.015)));
--    const minRatio = 0.58, maxRatio = 0.90;
--    const ratio = minRatio + (maxRatio-minRatio)*(0.18 + 0.82*rnd());
--    const roomW = Math.floor(W*ratio);
--    const leftWall = Math.floor((W-roomW)/2);
--    const rightWall = leftWall + roomW;
--
--    const elevW = Math.floor(140 + rnd()*150);
--    const elevH = Math.floor(H*(0.30 + rnd()*0.12));
--    const elevX = Math.floor(rightWall - elevW - (40 + rnd()*70));
--    const elevY = Math.floor(floorY - elevH - (35 + rnd()*55));
--
--    const lockerW = Math.floor(66 + rnd()*56);
--    const lockerH = Math.floor(H*(0.17 + rnd()*0.10));
--    const lockerX = Math.floor(leftWall + (40 + rnd()*130));
--    const lockerY = Math.floor(floorY - lockerH);
--
--    const deskW = Math.floor(130 + rnd()*200);
--    const deskH = Math.floor(48 + rnd()*70);
--    const deskX = Math.floor(leftWall + roomW*(0.30 + rnd()*0.30));
--    const deskY = Math.floor(floorY - deskH);
--
--    const panelW = Math.floor(120 + rnd()*120);
--    const panelH = Math.floor(60 + rnd()*60);
--    const panelX = Math.floor(leftWall + roomW*(0.16 + rnd()*0.26));
--    const panelY = Math.floor(floorY - panelH - (35 + rnd()*70));
--
--    const keypadW=60, keypadH=80;
--    const keypadX = Math.floor(elevX - (80 + rnd()*110));
--    const keypadY = Math.floor(elevY + (40 + rnd()*90));
--
--    const leverW=52, leverH=88;
--    const leverX = Math.floor(leftWall + roomW*(0.60 + rnd()*0.28));
--    const leverY = Math.floor(floorY - leverH - (30 + rnd()*60));
--
--    const noteX = Math.floor(leftWall + 60 + rnd()*(roomW-140));
--    const noteY = Math.floor(floorY - 240 - rnd()*180);
--
--    const termW=140, termH=80;
--    const termX = Math.floor(leftWall + roomW*(0.40 + rnd()*0.18));
--    const termY = Math.floor(floorY - termH - (50 + rnd()*70));
--
--    const props = [];
--    const propCount = 6 + Math.floor(rnd()*10);
--    for (let i=0;i<propCount;i++){
--      const px = Math.floor(leftWall + 40 + rnd()*(roomW-80));
--      const py = Math.floor(floorY - (40 + rnd()*220));
--      const pw = 18 + Math.floor(rnd()*80);
--      const ph = 14 + Math.floor(rnd()*60);
--      const kindRoll = rnd();
--      let kind = "crate";
--      if (kindRoll < 0.33) kind = "crate";
--      else if (kindRoll < 0.66) kind = "pipe";
--      else kind = "poster";
--      props.push({x:px,y:py,w:pw,h:ph,kind});
--    }
--
--    return {
--      W,H,floorY,leftWall,rightWall,
--      elevX,elevY,elevW,elevH,
--      doorW: Math.floor(elevW*0.42),
--      doorH: Math.floor(elevH*0.62),
--      lockerX,lockerY,lockerW,lockerH,
--      deskX,deskY,deskW,deskH,
--      panelX,panelY,panelW,panelH,
--      keypadX,keypadY,keypadW,keypadH,
--      leverX,leverY,leverW,leverH,
--      noteX,noteY,
--      termX,termY,termW,termH,
--      props
--    };
--  }
--
--  const GoalType={
--    NONE:"none",
--    FIND_KEY:"find_key",
--    FIX_FUSE:"fix_fuse",
--    KEYPAD_CODE:"keypad_code",
--    PULL_LEVER:"pull_lever",
--    SCAN_TERMINAL:"scan_terminal",
--    COLLECT_ORBS:"collect_orbs"
--  };
--
--  function makeCodeForFloor(floor){
--    const rnd = seededRand(hashStr("Code:"+floor));
--    const d1 = 1 + Math.floor(rnd()*9);
--    const d2 = Math.floor(rnd()*10);
--    const d3 = Math.floor(rnd()*10);
--    return ""+d1+d2+d3;
--  }
--
--  function goalForFloor(floor, theme){
--    const rnd = seededRand(hashStr("Goal:"+floor+":"+theme));
--    if (floor===1) return {type:GoalType.NONE, text:"Serbest", done:true};
--    if (floor % 10 === 0){
--      return (rnd()<0.5)
--        ? {type:GoalType.KEYPAD_CODE, text:"Şifre bul", done:false}
--        : {type:GoalType.FIND_KEY, text:"Anahtar bul", done:false};
--    }
--    if (theme === Themes.MAINT){
--      if (rnd() < 0.55) return {type:GoalType.FIX_FUSE, text:"Sigorta onar", done:false};
--      return {type:GoalType.PULL_LEVER, text:"Kolu çek", done:false};
--    }
--    if (theme === Themes.HOSP){
--      if (rnd() < 0.55) return {type:GoalType.SCAN_TERMINAL, text:"Terminal taraması", done:false};
--      return {type:GoalType.COLLECT_ORBS, text:"3 iz topla", done:false, need:3, got:0};
--    }
--    if (theme === Themes.DARK){
--      if (rnd() < 0.45) return {type:GoalType.COLLECT_ORBS, text:"3 iz topla", done:false, need:3, got:0};
--      return {type:GoalType.KEYPAD_CODE, text:"Şifre bul", done:false};
--    }
--    if (theme === Themes.RED){
--      if (rnd() < 0.50) return {type:GoalType.FIX_FUSE, text:"Acil paneli onar", done:false};
--      return {type:GoalType.SCAN_TERMINAL, text:"Alarmı sustur", done:false};
--    }
--    const r = rnd();
--    if (r < 0.28) return {type:GoalType.FIND_KEY, text:"Anahtar bul", done:false};
--    if (r < 0.52) return {type:GoalType.PULL_LEVER, text:"Kolu çek", done:false};
--    if (r < 0.76) return {type:GoalType.KEYPAD_CODE, text:"Şifre bul", done:false};
--    return {type:GoalType.SCAN_TERMINAL, text:"Terminal taraması", done:false};
--  }
--
--  const MonsterType={
--    NONE:"none",
--    ROAMER:"roamer",
--    PASSER:"passer",
--    LOOKER:"looker",
--    WAVES:"waves"
--  };
--
--  function monsterForFloor(floor, theme, diff){
--    const rnd = seededRand(hashStr("Mon:"+floor+":"+theme));
--    const name = monsterNameForFloor(floor);
--    const t = clamp((floor-1)/99,0,1);
--    const have = rnd() < (0.55 + 0.30*t);
--    if (!have) return {type:MonsterType.NONE, name};
--
--    const wR = 0.30 + 0.14*t;
--    const wP = 0.30 + 0.10*t;
--    const wL = 0.18;
--    const wW = 0.22 + 0.16*t;
--    const sum = wR+wP+wL+wW;
--    let r = rnd()*sum;
--    let type=MonsterType.ROAMER;
--    if ((r-=wR)<0) type=MonsterType.ROAMER;
--    else if ((r-=wP)<0) type=MonsterType.PASSER;
--    else if ((r-=wL)<0) type=MonsterType.LOOKER;
--    else type=MonsterType.WAVES;
--
--    const base = 170 + floor*1.6 + diff*18;
--    const big = 1 + t*0.35;
--
--    if (type===MonsterType.ROAMER){
--      return {
--        type,name,
--        x:0,y:0,w:46*big,h:42*big,
--        vx: (rnd()<0.5?-1:1) * (base*0.75),
--        agg: 0.22 + diff*0.06,
--        state:"patrol",
--        cooldown: 0,
--        help:"Odada dolaşıyor. Çarpışma hasar. Saklan (Space)."
--      };
--    }
--    if (type===MonsterType.PASSER){
--      return {
--        type,name,
--        x:-500,y:0,w:88*big,h:56*big,
--        speed: base*3.6,
--        phase:"warn",
--        tt:0,
--        help:"Geçiş geliyor. Dolaba gir (Space)."
--      };
--    }
--    if (type===MonsterType.LOOKER){
--      return {
--        type,name,
--        tt:0,
--        duration: 2400 + Math.floor(rnd()*2800),
--        help:"Hareket etme. Sprint kesin yasak."
--      };
--    }
--    return {
--      type,name,
--      phase:"warn",
--      tt:0,
--      passes: 2 + Math.floor(rnd()*3) + (diff>=4?1:0),
--      passIndex:0,
--      dir: 1,
--      x:-600,y:0,w:96*big,h:60*big,
--      speed: base*3.1,
--      help:"Dalga: geçişte saklan, arada çık."
--    };
--  }
--
--  function rectsOverlap(a,b){
--    return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h);
--  }
--
--  const SAVE_KEY="the_elevator_save_v2";
--
--  const Settings = {
--    vol: 0.50,
--    diff: 3,
--    shake: 0.65
--  };
--
--  function loadSettings(){
--    try{
--      const raw = localStorage.getItem(SAVE_KEY+"_settings");
--      if (!raw) return;
--      const s = JSON.parse(raw);
--      if (typeof s.vol==="number") Settings.vol=clamp(s.vol,0,1);
--      if (typeof s.diff==="number") Settings.diff=clamp(Math.round(s.diff),1,5);
--      if (typeof s.shake==="number") Settings.shake=clamp(s.shake,0,1);
--    }catch{}
--  }
--  function saveSettings(){
--    localStorage.setItem(SAVE_KEY+"_settings", JSON.stringify(Settings));
--  }
--
--  function loadSave(){
--    try{
--      const raw = localStorage.getItem(SAVE_KEY);
--      if (!raw) return null;
--      const s = JSON.parse(raw);
--      if (!s || typeof s.floor!=="number") return null;
--      return s;
--    }catch{return null;}
--  }
--  function saveGame(){
--    const s = {
--      floor: game.floor,
--      hp: player.hp,
--      keys: player.keys,
--      bat: player.battery,
--      theme: game.theme,
--      diff: Settings.diff
--    };
--    localStorage.setItem(SAVE_KEY, JSON.stringify(s));
--  }
--  function wipeSave(){
--    localStorage.removeItem(SAVE_KEY);
--  }
--
--  const game = {
--    running:false,
--    state:"menu",
--    t:0,
--    floor:1,
--    theme: Themes.LOBBY,
--    pal:null,
--    room:null,
--    goal:null,
--    monster:null,
--    lights:1,
--    shake:0,
--    obj:{
--      drawerUsed:false,
--      noteTaken:false,
--      code:null,
--      fuseTaken:false,
--      panelFixed:false,
--      leverPulled:false,
--      termDone:false,
--      orbs:[],
--      orbsGot:0
--    },
--    inv:{
--      fuse:false,
--      noteCode:null
--    }
--  };
--
--  const player = {
--    x:0,y:0,
--    vx:0,
--    w:22,h:46,
--    hp:3,
--    keys:0,
--    stamina:100,
--    battery:100,
--    hidden:false,
--    flashlight:false,
--    face:1,
--    invuln:0
--  };
--
--  function resetPerFloor(){
--    game.obj.drawerUsed=false;
--    game.obj.noteTaken=false;
--    game.obj.code = makeCodeForFloor(game.floor);
--    game.obj.fuseTaken=false;
--    game.obj.panelFixed=false;
--    game.obj.leverPulled=false;
--    game.obj.termDone=false;
--    game.obj.orbs=[];
--    game.obj.orbsGot=0;
--
--    game.inv.fuse=false;
--    game.inv.noteCode=null;
--  }
--
--  function spawnOrbs(){
--    const rnd = seededRand(hashStr("Orbs:"+game.floor+":"+game.theme));
--    const R = game.room;
--    const count = 3;
--    for(let i=0;i<count;i++){
--      const x = Math.floor(R.leftWall + 80 + rnd()*(R.rightWall-R.leftWall-160));
--      const y = Math.floor(R.floorY - 120 - rnd()*220);
--      game.obj.orbs.push({x,y,r:14, taken:false});
--    }
--  }
--
--  function pxRect(x,y,w,h){ ctx.fillRect(x|0,y|0,w|0,h|0); }
--
--  function vignette(intensity){
--    const W=cv.width,H=cv.height;
--    ctx.save();
--    const g = ctx.createRadialGradient(W/2,H/2,50,W/2,H/2,Math.max(W,H)*0.62);
--    g.addColorStop(0,"rgba(0,0,0,0)");
--    g.addColorStop(1,`rgba(0,0,0,${clamp(intensity,0,0.92)})`);
--    ctx.fillStyle=g;
--    ctx.fillRect(0,0,W,H);
--    ctx.restore();
--  }
--
--  function drawTextBox(text,x,y,color){
--    ctx.save();
--    ctx.font = `${Math.max(14, Math.floor(Math.min(cv.width, cv.height)/68))}px ui-monospace, Menlo, Consolas, monospace`;
--    const w = ctx.measureText(text).width;
--    ctx.globalAlpha=0.92;
--    ctx.fillStyle="rgba(0,0,0,.35)";
--    pxRect(x-10,y-22,w+20,30);
--    ctx.fillStyle=color||"rgba(255,255,255,.92)";
--    ctx.fillText(text,x,y);
--    ctx.restore();
--  }
--
--  function drawWarningStripes(alpha){
--    const W=cv.width,H=cv.height;
--    ctx.save();
--    ctx.globalAlpha=alpha;
--    ctx.fillStyle=game.pal.warn;
--    for(let i=-240;i<W+240;i+=42){
--      ctx.beginPath();
--      ctx.moveTo(i,0);
--      ctx.lineTo(i+20,0);
--      ctx.lineTo(i+260,H);
--      ctx.lineTo(i+240,H);
--      ctx.closePath();
--      ctx.fill();
--    }
--    ctx.restore();
--  }
--
--  function drawPlayer(){
--    if (player.hidden) return;
--    const s = Math.max(2, Math.floor(Math.min(cv.width, cv.height)/360));
--    const x=player.x, y=player.y;
--    const ox=(x-6*s)|0, oy=(y-16*s)|0;
--
--    ctx.globalAlpha=0.25;
--    ctx.fillStyle="#000";
--    pxRect(x-12*s, y-2*s, 24*s, 4*s);
--    ctx.globalAlpha=1;
--
--    const shirt="#3d7bff";
--    const pants="#1c2238";
--
--    if (player.invuln>0 && Math.floor(player.invuln/80)%2===0) ctx.globalAlpha=0.45;
--
--    ctx.fillStyle=pants;
--    pxRect(ox+4*s, oy+12*s, 3*s, 4*s);
--    pxRect(ox+9*s, oy+12*s, 3*s, 4*s);
--
--    ctx.fillStyle="#090b14";
--    pxRect(ox+3*s, oy+15*s, 4*s, 2*s);
--    pxRect(ox+9*s, oy+15*s, 4*s, 2*s);
--
--    ctx.fillStyle=shirt;
--    pxRect(ox+4*s, oy+7*s, 8*s, 6*s);
--
--    ctx.fillStyle=shirt;
--    pxRect(ox+2*s, oy+8*s, 2*s, 4*s);
--    pxRect(ox+12*s, oy+8*s, 2*s, 4*s);
--
--    ctx.fillStyle="#4b2f25";
--    pxRect(ox+5*s, oy+2*s, 6*s, 5*s);
--    ctx.fillStyle="#141018";
--    pxRect(ox+5*s, oy+2*s, 6*s, 2*s);
--
--    ctx.fillStyle="#eaf2ff";
--    pxRect(ox+6*s, oy+4*s, 1*s, 1*s);
--    pxRect(ox+9*s, oy+4*s, 1*s, 1*s);
--
--    ctx.fillStyle="#0a0c12";
--    const dir = player.face>0 ? 1 : 0;
--    pxRect(ox+(6+dir)*s, oy+4*s, 1*s, 1*s);
--    pxRect(ox+(9+dir)*s, oy+4*s, 1*s, 1*s);
--
--    ctx.fillStyle="#0a0c12";
--    pxRect(ox+7*s, oy+6*s, 2*s, 1*s);
--
--    ctx.globalAlpha=1;
--  }
--
--  function drawMonster(m){
--    const P=game.pal;
--    if (!m || m.type===MonsterType.NONE) return;
--
--    if (m.type===MonsterType.LOOKER){
--      const W=cv.width,H=cv.height;
--      const x=W/2, y=Math.floor(H*0.22);
--      ctx.save();
--      ctx.globalAlpha=0.92;
--      ctx.fillStyle="rgba(255,255,255,.84)";
--      pxRect(x-95,y-18,72,28);
--      pxRect(x+23,y-18,72,28);
--      ctx.fillStyle="rgba(0,0,0,.86)";
--      const p = player.face>0 ? 12 : -12;
--      pxRect(x-64+p,y-10,18,18);
--      pxRect(x+52+p,y-10,18,18);
--      ctx.restore();
--      drawTextBox(m.name, Math.floor(x-160), Math.floor(H*0.12), P.warn);
--      return;
--    }
--
--    ctx.save();
--    ctx.globalAlpha=0.92;
--    ctx.fillStyle=P.warn;
--    const step = Math.max(14, Math.floor(Math.min(cv.width, cv.height)/64));
--    const cx=m.x, cy=m.y, w=m.w, h=m.h;
--    for(let yy=-h/2; yy<=h/2; yy+=step){
--      for(let xx=-w/2; xx<=w/2; xx+=step){
--        const d=(xx*xx)/(w*w)+(yy*yy)/(h*h);
--        if (d < 0.24 + Math.random()*0.26) pxRect(cx+xx, cy+yy, step-2, step-2);
--      }
--    }
--    const s = Math.max(2, Math.floor(Math.min(cv.width, cv.height)/420));
--    ctx.fillStyle="rgba(255,255,255,.86)";
--    pxRect(cx+18*s, cy-10*s, 12*s, 7*s);
--    pxRect(cx+44*s, cy-10*s, 12*s, 7*s);
--    ctx.fillStyle="rgba(0,0,0,.90)";
--    pxRect(cx+22*s, cy-8*s, 5*s, 5*s);
--    pxRect(cx+48*s, cy-8*s, 5*s, 5*s);
--    ctx.restore();
--
--    drawTextBox(m.name, clamp(cx-160, 18, cv.width-320), clamp(cy-m.h/2-18, 30, cv.height-30), P.warn);
--  }
--
--  function drawProps(){
--    const R=game.room;
--    for(const pr of R.props){
--      if (pr.kind==="poster"){
--        ctx.globalAlpha=0.85;
--        ctx.fillStyle="rgba(255,255,255,.10)";
--        pxRect(pr.x, pr.y, pr.w, pr.h);
--        ctx.globalAlpha=1;
--      } else if (pr.kind==="pipe"){
--        ctx.globalAlpha=0.85;
--        ctx.fillStyle="rgba(0,0,0,.28)";
--        pxRect(pr.x, pr.y, pr.w, Math.max(6, Math.floor(pr.h*0.25)));
--        ctx.globalAlpha=1;
--      } else {
--        ctx.globalAlpha=0.90;
--        ctx.fillStyle="rgba(0,0,0,.30)";
--        pxRect(pr.x, pr.y, pr.w, pr.h);
--        ctx.fillStyle="rgba(255,255,255,.08)";
--        pxRect(pr.x+4, pr.y+4, pr.w-8, pr.h-8);
--        ctx.globalAlpha=1;
--      }
--    }
--
--    if (game.goal && game.goal.type===GoalType.COLLECT_ORBS){
--      for(const o of game.obj.orbs){
--        if (o.taken) continue;
--        ctx.globalAlpha=0.90;
--        ctx.fillStyle=game.pal.neon;
--        pxRect(o.x-6, o.y-6, 12, 12);
--        ctx.globalAlpha=0.35;
--        ctx.fillStyle=game.pal.neon;
--        pxRect(o.x-16, o.y-16, 32, 32);
--        ctx.globalAlpha=1;
--      }
--    }
--  }
--
--  function drawRoom(){
--    const R=game.room, P=game.pal;
--    const W=cv.width, H=cv.height;
--
--    const g = ctx.createLinearGradient(0,0,0,H);
--    g.addColorStop(0,P.bg1);
--    g.addColorStop(1,P.bg2);
--    ctx.fillStyle=g;
--    ctx.fillRect(0,0,W,H);
--
--    const step=Math.max(22, Math.floor(Math.min(W,H)/32));
--    ctx.globalAlpha=0.10;
--    ctx.fillStyle=P.neon;
--    for(let y=0;y<H;y+=step) pxRect(0,y,W,1);
--    for(let x=0;x<W;x+=step) pxRect(x,0,1,H);
--    ctx.globalAlpha=1;
--
--    const topY=Math.floor(H*0.10);
--    ctx.fillStyle=P.wall;
--    pxRect(R.leftWall, topY, R.rightWall-R.leftWall, R.floorY-topY);
--    ctx.fillStyle=P.panel;
--    pxRect(0, R.floorY, W, H-R.floorY);
--    ctx.fillStyle="rgba(255,255,255,.12)";
--    pxRect(R.leftWall, R.floorY, R.rightWall-R.leftWall, 2);
--
--    if (game.theme===Themes.HOSP){
--      ctx.globalAlpha=0.10;
--      ctx.fillStyle="rgba(255,255,255,.9)";
--      for(let i=0;i<8;i++){
--        const x = R.leftWall + 60 + i*90;
--        pxRect(x, topY+30, 50, 10);
--      }
--      ctx.globalAlpha=1;
--    }
--    if (game.theme===Themes.MAINT){
--      ctx.globalAlpha=0.12;
--      ctx.fillStyle="rgba(0,0,0,.9)";
--      for(let i=0;i<10;i++){
--        const x = R.leftWall + 40 + i*70;
--        pxRect(x, topY+40, 30, 4);
--      }
--      ctx.globalAlpha=1;
--    }
--    if (game.theme===Themes.RED){
--      ctx.globalAlpha=0.12;
--      ctx.fillStyle=P.warn;
--      pxRect(R.leftWall, topY, R.rightWall-R.leftWall, 8);
--      ctx.globalAlpha=1;
--    }
--
--    drawProps();
--
--    ctx.fillStyle="rgba(0,0,0,.35)";
--    pxRect(R.elevX, R.elevY, R.elevW, R.elevH);
--    ctx.fillStyle="rgba(255,255,255,.08)";
--    pxRect(R.elevX+8, R.elevY+8, R.elevW-16, R.elevH-16);
--
--    const open = (game.state==="moving") ? clamp(game.t/650,0,1) : 0;
--    const gap = Math.floor(40*open);
--    ctx.fillStyle="rgba(255,255,255,.10)";
--    pxRect(R.elevX + 14 - gap, R.elevY + Math.floor(R.elevH*0.22), R.doorW, R.doorH);
--    pxRect(R.elevX + R.elevW - 14 - R.doorW + gap, R.elevY + Math.floor(R.elevH*0.22), R.doorW, R.doorH);
--
--    ctx.fillStyle = (game.goal && game.goal.done) ? P.good : P.neon;
--    pxRect(R.elevX + R.elevW - 30, R.elevY + 18, 14, 14);
--
--    ctx.fillStyle="rgba(0,0,0,.35)";
--    pxRect(R.lockerX, R.lockerY, R.lockerW, R.lockerH);
--    ctx.fillStyle="rgba(255,255,255,.08)";
--    pxRect(R.lockerX+6, R.lockerY+6, R.lockerW-12, R.lockerH-12);
--    ctx.fillStyle="rgba(104,255,177,.85)";
--    pxRect(R.lockerX+R.lockerW-14, R.lockerY+Math.floor(R.lockerH/2), 6, 6);
--
--    ctx.fillStyle="rgba(0,0,0,.35)";
--    pxRect(R.deskX, R.deskY, R.deskW, R.deskH);
--    ctx.fillStyle="rgba(255,255,255,.08)";
--    pxRect(R.deskX+6, R.deskY+6, R.deskW-12, R.deskH-12);
--    ctx.fillStyle = game.obj.drawerUsed ? "rgba(255,255,255,.25)" : "rgba(255,227,123,.85)";
--    pxRect(R.deskX + R.deskW - 18, R.deskY + Math.floor(R.deskH/2), 10, 4);
--
--    ctx.fillStyle="rgba(0,0,0,.30)";
--    pxRect(R.panelX, R.panelY, R.panelW, R.panelH);
--    ctx.fillStyle="rgba(255,255,255,.08)";
--    pxRect(R.panelX+6, R.panelY+6, R.panelW-12, R.panelH-12);
--    ctx.fillStyle = game.obj.panelFixed ? P.good : P.warn;
--    pxRect(R.panelX + R.panelW - 18, R.panelY + 14, 10, 10);
--
--    ctx.fillStyle="rgba(0,0,0,.30)";
--    pxRect(R.keypadX, R.keypadY, R.keypadW, R.keypadH);
--    ctx.fillStyle="rgba(255,255,255,.10)";
--    pxRect(R.keypadX+6, R.keypadY+6, R.keypadW-12, R.keypadH-12);
--    ctx.fillStyle = game.obj.noteTaken ? P.neon : "rgba(255,255,255,.18)";
--    pxRect(R.keypadX + 16, R.keypadY + 12, 28, 8);
--
--    ctx.fillStyle="rgba(0,0,0,.30)";
--    pxRect(R.leverX, R.leverY, R.leverW, R.leverH);
--    ctx.fillStyle = game.obj.leverPulled ? P.good : P.neon;
--    pxRect(R.leverX + 20, R.leverY + 12, 12, 58);
--
--    ctx.fillStyle="rgba(0,0,0,.30)";
--    pxRect(R.termX, R.termY, R.termW, R.termH);
--    ctx.fillStyle="rgba(255,255,255,.10)";
--    pxRect(R.termX+6, R.termY+6, R.termW-12, R.termH-12);
--    ctx.fillStyle = game.obj.termDone ? P.good : P.neon;
--    pxRect(R.termX + 14, R.termY + 14, R.termW-28, 10);
--
--    ctx.fillStyle = game.obj.noteTaken ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.62)";
--    pxRect(R.noteX, R.noteY, 34, 22);
--
--    ctx.globalAlpha=0.78;
--    ctx.fillStyle=P.neon;
--    ctx.font=`${Math.max(12, Math.floor(Math.min(W,H)/78))}px system-ui, Arial`;
--    ctx.fillText("Dolap (Space)", R.lockerX-2, R.lockerY-10);
--    ctx.fillText("Eşya (W)", R.deskX, R.deskY-10);
--    ctx.fillText("Panel (W)", R.panelX, R.panelY-10);
--    ctx.fillText("Şifre (W)", R.keypadX-10, R.keypadY-10);
--    ctx.fillText("Kol (W)", R.leverX-10, R.leverY-10);
--    ctx.fillText("Terminal (W)", R.termX-10, R.termY-10);
--    ctx.fillText("Asansör (Enter)", R.elevX+10, R.elevY+R.elevH+18);
--    ctx.globalAlpha=1;
--
--    ctx.globalAlpha=0.85;
--    ctx.fillStyle="rgba(0,0,0,.25)";
--    pxRect(R.leftWall+36, topY, 320, 30);
--    ctx.fillStyle="rgba(255,255,255,.85)";
--    ctx.font=`${Math.max(14, Math.floor(Math.min(W,H)/60))}px ui-monospace, Menlo, Consolas, monospace`;
--    ctx.fillText(`FLOOR ${game.floor}  THEME ${game.theme.toUpperCase()}`, R.leftWall+50, topY+22);
--    ctx.globalAlpha=1;
--
--    if (player.hidden){
--      ctx.globalAlpha=0.55;
--      ctx.fillStyle="rgba(0,0,0,.78)";
--      ctx.fillRect(0,0,W,H);
--      ctx.globalAlpha=1;
--      drawTextBox("Dolaptasın. Sessiz kal.", 24, 44, P.neon);
--    }
--  }
--
--  function applyFlashlight(){
--    const isDark = (game.theme === Themes.DARK);
--    if (!isDark) return;
--    const W=cv.width,H=cv.height;
--    ctx.save();
--    ctx.globalAlpha=0.72;
--    ctx.fillStyle="rgba(0,0,0,.80)";
--    ctx.fillRect(0,0,W,H);
--    ctx.globalAlpha=1;
--
--    if (player.flashlight && player.battery>0 && !player.hidden){
--      const x=player.x, y=player.y-player.h*0.65;
--      const r1=Math.max(120, Math.min(W,H)*0.18);
--      const r2=Math.max(280, Math.min(W,H)*0.42);
--      const g=ctx.createRadialGradient(x,y,r1, x,y,r2);
--      g.addColorStop(0,"rgba(0,0,0,0)");
--      g.addColorStop(1,"rgba(0,0,0,.90)");
--      ctx.fillStyle=g;
--      ctx.fillRect(0,0,W,H);
--    } else {
--      ctx.globalAlpha=0.22;
--      ctx.fillStyle="rgba(255,255,255,.02)";
--      ctx.fillRect(0,0,W,H);
--      ctx.globalAlpha=1;
--    }
--    ctx.restore();
--  }
--
--  function initMonsterPos(){ /* ... aynı ... */ }
--  function updateMonster(dt){ /* ... aynı ... */ }
--  function near(x,y,r){ const dx=player.x-x, dy=player.y-y; return (dx*dx+dy*dy)<=r*r; }
--  function updateInventoryUI(){ /* ... aynı ... */ }
--  function markGoalDone(){ /* ... aynı ... */ }
--  function interact(){ /* ... aynı ... */ }
--  function toggleHide(){ /* ... aynı ... */ }
--  function toggleFlashlight(){ /* ... aynı ... */ }
--  function tryElevator(){ /* ... aynı ... */ }
--  function damage(reason){ /* ... aynı ... */ }
--
--  function enterFloor(f){
--    game.floor = clamp(f,1,100);
--    game.theme = themeForFloor(game.floor);
--    game.pal = paletteForFloor(game.floor, game.theme);
--    game.room = roomForFloor(game.floor, game.theme);
--    resetPerFloor();
--
--    game.goal = goalForFloor(game.floor, game.theme);
--    if (game.goal.type===GoalType.COLLECT_ORBS) spawnOrbs();
--
--    game.monster = monsterForFloor(game.floor, game.theme, Settings.diff);
--    // initMonsterPos() burada çağırıyorsun zaten
--    initMonsterPos();
--
--    const R=game.room;
--    player.x = clamp(R.leftWall+160, R.leftWall+40, R.rightWall-40);
--    player.y = R.floorY;
--    player.vx = 0;
--    player.hidden = false;
--
--    game.state="play";
--    game.t=0;
--    game.lights=1;
--    game.shake=0;
--
--    if (game.theme===Themes.DARK) showToast("Karanlık kat. Fener (F) işe yarar.", 2000);
--
--    if (game.monster && game.monster.type!==MonsterType.NONE){
--      uiThreat.textContent="Var";
--      showToast("Tehdit: " + game.monster.name + "\n" + (game.monster.help||""), 2600);
--    } else {
--      uiThreat.textContent="Yok";
--      showToast("Bu kat sakin. Görevi bitir.", 1700);
--    }
--
--    updateHUD();
--    saveGame();
--  }
--
--  function enterMoving(){ /* ... aynı ... */ }
--  function enterWin(){ /* ... aynı ... */ }
--
--  function updateHUD(){
--    uiFloor.textContent = String(game.floor);
--    uiHP.textContent = String(player.hp);
--    uiStam.textContent = String(Math.round(player.stamina));
--    uiBat.textContent = String(Math.round(player.battery));
--    uiGoal.textContent = game.goal
--      ? (game.goal.type===GoalType.COLLECT_ORBS
--          ? `${game.goal.text} (${game.obj.orbsGot}/${game.goal.need})${game.goal.done?" (bitti)":""}`
--          : `${game.goal.text}${game.goal.done?" (bitti)":""}`)
--      : "-";
--    updateInventoryUI();
--  }
--
--  let last = now();
--  function update(dt){ /* ... aynı ... */ }
--
--  function render(){
--    if (!game.running) return;
--
--    // FIX 1: sahne hazır değilse çizme (pal/room null hatasını bitirir)
--    if (!game.pal || !game.room) {
--      ctx.setTransform(1,0,0,1,0,0);
--      ctx.fillStyle = "#02030a";
--      ctx.fillRect(0,0,cv.width,cv.height);
--      return;
--    }
--
--    const W=cv.width,H=cv.height;
--    const shakeScale = Settings.shake;
--    const sx = (Math.random()*2-1) * (game.shake*10*shakeScale);
--    const sy = (Math.random()*2-1) * (game.shake*6*shakeScale);
--
--    ctx.save();
--    ctx.translate(sx, sy);
--
--    drawRoom();
--
--    if (game.monster){
--      if (game.monster.type===MonsterType.PASSER && game.monster.phase==="warn") drawWarningStripes(0.26);
--      if (game.monster.type===MonsterType.WAVES && game.monster.phase==="warn") drawWarningStripes(0.28);
--    }
--
--    if (game.monster && game.monster.type!==MonsterType.NONE){
--      const m=game.monster;
--      if ((m.type===MonsterType.ROAMER || m.type===MonsterType.PASSER || m.type===MonsterType.WAVES) && !m.y){
--        m.y = Math.floor(game.room.floorY - 140);
--      }
--      drawMonster(m);
--    }
--
--    drawPlayer();
--
--    ctx.save();
--    const dark = clamp(1 - game.lights, 0, 0.90);
--    ctx.fillStyle = `rgba(0,0,0,${dark})`;
--    ctx.fillRect(0,0,W,H);
--    ctx.restore();
--
--    applyFlashlight();
--    vignette(0.30 + (1-game.lights)*0.45);
--
--    if (game.state==="fail") drawBanner("OYUN BİTTİ", "Esc: Menü");
--    if (game.state==="win") drawBanner("KAZANDIN", "100. kat");
--
--    ctx.restore();
--  }
--
--  function drawBanner(title, sub){ /* ... aynı ... */ }
--
--  function frame(){
--    const t=now();
--    const dt=Math.min(33, t-last);
--    last=t;
--    update(dt);
--    render();
--    pressed.clear();
--    requestAnimationFrame(frame);
--  }
--
--  function openMenu(){ menu.classList.remove("hide"); showToast("Menü", 800); }
--  function closeMenu(){ menu.classList.add("hide"); showToast("Devam", 800); }
--
--  btnHow.addEventListener("click", ()=>{
--    howPanel.classList.toggle("hide");
--    settingsPanel.classList.add("hide");
--  });
--  btnSettings.addEventListener("click", ()=>{
--    settingsPanel.classList.toggle("hide");
--    howPanel.classList.add("hide");
--  });
--
--  btnWipe.addEventListener("click", ()=>{
--    wipeSave();
--    showToast("Kayıt silindi.", 1400);
--  });
--
--  btnNew.addEventListener("click", ()=>{
--    player.hp=3;
--    player.keys=0;
--    player.stamina=100;
--    player.battery=100;
--    player.flashlight=false;
--    enterFloor(1);
--    closeMenu();
--    showToast("Yeni oyun başladı.", 1200);
--  });
--
--  btnContinue.addEventListener("click", ()=>{
--    const s=loadSave();
--    if (!s){
--      showToast("Kayıt yok. Yeni oyun başlat.", 1600);
--      return;
--    }
--    player.hp = clamp(s.hp ?? 3, 1, 3);
--    player.keys = Math.max(0, s.keys ?? 0);
--    player.stamina = 100;
--    player.battery = clamp(s.bat ?? 100, 0, 100);
--    player.flashlight = false;
--    enterFloor(clamp(s.floor ?? 1, 1, 100));
--    closeMenu();
--    showToast("Kayıt yüklendi.", 1200);
--  });
--
--  rngVol.addEventListener("input", ()=>{
--    Settings.vol = clamp(parseInt(rngVol.value,10)/100, 0,1);
--    AudioSys.setVol(Settings.vol);
--    saveSettings();
--  });
--  rngDiff.addEventListener("input", ()=>{
--    Settings.diff = clamp(parseInt(rngDiff.value,10),1,5);
--    saveSettings();
--  });
--  rngShake.addEventListener("input", ()=>{
--    Settings.shake = clamp(parseInt(rngShake.value,10)/100, 0,1);
--    saveSettings();
--  });
--
--  window.addEventListener("keydown",(e)=>{
--    const k=(e.key||"").toLowerCase();
--    if (k==="escape" && game.running){
--      const open = !menu.classList.contains("hide");
--      if (open) closeMenu(); else openMenu();
--    }
--  });
--
--  function updateSettingsUI(){
--    rngVol.value = String(Math.round(Settings.vol*100));
--    rngDiff.value = String(Settings.diff);
--    rngShake.value = String(Math.round(Settings.shake*100));
--    AudioSys.setVol(Settings.vol);
--  }
--
--  function updateMenuContinueState(){
--    const s=loadSave();
--    btnContinue.disabled = !s;
--  }
--
--  function start(){
--    loadSettings();
--    updateSettingsUI();
--
--    hud.classList.remove("hide");
--    game.running=true;
--
--    const s=loadSave();
--    if (s){
--      showToast("Kayıt bulundu. Devam edebilirsin.", 1800);
--    } else {
--      showToast("Yeni oyun ile başla.", 1600);
--    }
--    updateMenuContinueState();
--
--    // FIX 2: Menüdeyken bile ilk sahneyi hazırla (pal/room null olmaz)
--    enterFloor(1);
--    // Menü açık kalsın
--    menu.classList.remove("hide");
--
--    requestAnimationFrame(frame);
--  }
--
--  start();
--
--})();
--</script>
--</body>
--</html>
--
-+<!doctype html>
-+<html lang="tr">
-+<head>
-+  <meta charset="utf-8" />
-+  <meta name="viewport" content="width=device-width,initial-scale=1" />
-+  <title>THE ELEVATOR</title>
-+  <style>
-+    :root{
-+      --bg:#11110d;
-+      --wall:#b9ad8a;
-+      --wall2:#a89d7a;
-+      --carpet:#7b7451;
-+      --carpet2:#6e6847;
-+      --ink:#181712;
-+      --muted:#b8b39d;
-+    }
-+    *{box-sizing:border-box}
-+    html,body{height:100%;margin:0;background:var(--bg);color:#d8d3bf;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
-+    canvas{display:block;width:100vw;height:100vh;background:#11110d}
-+
-+    .overlay{position:fixed;inset:0;display:grid;place-items:center;background:#181712;transition:opacity .8s ease;z-index:10}
-+    .overlay.hidden{opacity:0;pointer-events:none}
-+    .menu-box{text-align:center}
-+    .title{font-size:28px;letter-spacing:4px;color:#c9c4ae;margin-bottom:24px}
-+    .play{border:1px solid #8e876f;background:transparent;color:#d5d0bb;padding:12px 40px;cursor:pointer;letter-spacing:2px}
-+    .play:hover{background:#232119}
-+
-+    .hud{position:fixed;left:14px;top:12px;color:#c8c2ab;font-size:13px;line-height:1.4;z-index:5}
-+    .inv{position:fixed;right:14px;top:12px;text-align:right;color:#c8c2ab;font-size:13px;z-index:5}
-+    .prompt{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);font-size:12px;letter-spacing:2px;color:#d2ccb3;opacity:0;transition:opacity .25s;z-index:6}
-+    .prompt.show{opacity:1}
-+
-+    .chest-ui{position:fixed;inset:0;background:rgba(5,5,4,.76);display:none;place-items:center;z-index:9}
-+    .chest-ui.show{display:grid}
-+    .panel{background:#1f1d16;border:1px solid #77705c;padding:16px;min-width:320px}
-+    .panel h3{margin:0 0 12px;font-size:14px;color:#cdc7b0;font-weight:normal;letter-spacing:2px}
-+    .slots{display:grid;grid-template-columns:repeat(3,70px);gap:8px}
-+    .slot{height:70px;border:1px solid #726b57;background:#2c291f;display:grid;place-items:center;color:#c7c0a8;font-size:12px;cursor:pointer}
-+    .slot.empty{opacity:.35;cursor:default}
-+    .hint{margin-top:12px;font-size:11px;color:#a9a38c;letter-spacing:1px}
-+
-+    .dead{position:fixed;inset:0;background:#000;display:none;place-items:center;z-index:12;color:#f5f5f5;font-size:26px;letter-spacing:3px}
-+    .dead.show{display:grid;animation:fade 1s ease both}
-+
-+    .final{position:fixed;inset:0;background:#000;display:none;place-items:center;z-index:13;color:#f4f4f4;text-align:center;padding:20px}
-+    .final.show{display:grid;animation:fade 2s ease both}
-+    .final p{font-size:30px;letter-spacing:1px}
-+    @keyframes fade{from{opacity:0}to{opacity:1}}
-+  </style>
-+</head>
-+<body>
-+  <canvas id="game"></canvas>
-+
-+  <div class="overlay" id="menu">
-+    <div class="menu-box">
-+      <div class="title">THE ELEVATOR</div>
-+      <button class="play" id="playBtn">OYNA</button>
-+    </div>
-+  </div>
-+
-+  <div class="hud" id="hud">KAT 1 / 100<br>DURUM: KAYIP</div>
-+  <div class="inv" id="inv">ENVANTER<br>-</div>
-+  <div class="prompt" id="prompt">[E] AÇ</div>
-+
-+  <div class="chest-ui" id="chestUI">
-+    <div class="panel">
-+      <h3>SANDIK</h3>
-+      <div class="slots" id="slots"></div>
-+      <div class="hint">ESC ile kapat</div>
-+    </div>
-+  </div>
-+
-+  <div class="dead" id="dead">YAKALANDIN</div>
-+  <div class="final" id="final"><p>“Hiçbir zaman yukarı çıkmıyordun.”</p></div>
-+
-+  <script>
-+    const cv = document.getElementById('game');
-+    const cx = cv.getContext('2d');
-+    const menu = document.getElementById('menu');
-+    const playBtn = document.getElementById('playBtn');
-+    const hud = document.getElementById('hud');
-+    const inv = document.getElementById('inv');
-+    const prompt = document.getElementById('prompt');
-+    const chestUI = document.getElementById('chestUI');
-+    const slots = document.getElementById('slots');
-+    const deadUI = document.getElementById('dead');
-+    const finalUI = document.getElementById('final');
-+
-+    const STATE = { MENU:'MENU', PLAY:'PLAY', CHEST_OPEN:'CHEST_OPEN', ELEVATOR:'ELEVATOR', DEAD:'DEAD' };
-+    let gameState = STATE.MENU;
-+
-+    function resize(){
-+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-+      cv.width = innerWidth * dpr;
-+      cv.height = innerHeight * dpr;
-+      cx.setTransform(dpr,0,0,dpr,0,0);
-+    }
-+    addEventListener('resize', resize);
-+    resize();
-+
-+    const keys = new Set();
-+    addEventListener('keydown', e => {
-+      if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
-+      keys.add(e.key.toLowerCase());
-+      if (e.key.toLowerCase() === 'escape' && gameState === STATE.CHEST_OPEN) closeChest();
-+      if (e.key.toLowerCase() === 'e') interact();
-+    });
-+    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-+
-+    const rng = (a,b)=>a+Math.random()*(b-a);
-+    const randi = (a,b)=>Math.floor(rng(a,b+1));
-+
-+    const player = { x:0, y:0, r:10, breath:0 };
-+    let camera = { x:0, y:0 };
-+    let floor = 1;
-+    let flicker = 0;
-+    let blackout = 0;
-+    let elevatorTimer = 0;
-+    let ending = false;
-+
-+    const inventory = { key:false, card:false };
-+    const chunks = new Map();
-+    const chunkSize = 420;
-+    let chest = null;
-+    let elevator = null;
-+    let monsters = [];
-+    let chestSlots = [];
-+
-+    function floorNeed(){ return floor % 2 === 0 ? 'card' : 'key'; }
-+
-+    function setupFloor(){
-+      chunks.clear();
-+      player.x = 0; player.y = 0;
-+      camera.x = 0; camera.y = 0;
-+      inventory.key = false; inventory.card = false;
-+      chest = { x:rng(-180,180), y:rng(-180,180), opened:false, taken:false };
-+      elevator = { x:rng(430,640), y:rng(-80,80) };
-+      monsters = [];
-+      const mCount = Math.min(1 + Math.floor(floor / 18), 6);
-+      for(let i=0;i<mCount;i++){
-+        monsters.push({ x:rng(240,760), y:rng(-350,350), s:0.35 + floor*0.003 + Math.random()*0.1 });
-+      }
-+      blackout = 0;
-+    }
-+
-+    function chunkKey(cx,cy){ return `${cx},${cy}`; }
-+    function getChunk(cxId, cyId){
-+      const key = chunkKey(cxId,cyId);
-+      if(chunks.has(key)) return chunks.get(key);
-+      const hall = [];
-+      for(let i=0;i<randi(4,7);i++){
-+        hall.push({
-+          x: cxId*chunkSize + rng(20, chunkSize-180),
-+          y: cyId*chunkSize + rng(20, chunkSize-180),
-+          w: rng(120,240),
-+          h: rng(80,190),
-+          tone: rng(-12,12)
-+        });
-+      }
-+      const c = { hall };
-+      chunks.set(key, c);
-+      return c;
-+    }
-+
-+    function gatherWorld(){
-+      const cxi = Math.floor(player.x / chunkSize);
-+      const cyi = Math.floor(player.y / chunkSize);
-+      const halls = [];
-+      for(let y=cyi-2;y<=cyi+2;y++) for(let x=cxi-2;x<=cxi+2;x++) halls.push(...getChunk(x,y).hall);
-+      return halls;
-+    }
-+
-+    function update(dt){
-+      if(gameState === STATE.PLAY){
-+        const speed = 120;
-+        let dx = 0, dy = 0;
-+        if(keys.has('w')||keys.has('arrowup')) dy -= 1;
-+        if(keys.has('s')||keys.has('arrowdown')) dy += 1;
-+        if(keys.has('a')||keys.has('arrowleft')) dx -= 1;
-+        if(keys.has('d')||keys.has('arrowright')) dx += 1;
-+        const len = Math.hypot(dx,dy) || 1;
-+        player.x += (dx/len) * speed * dt;
-+        player.y += (dy/len) * speed * dt;
-+        player.breath += dt;
-+
-+        camera.x += (player.x - camera.x) * 0.08;
-+        camera.y += (player.y - camera.y) * 0.08;
-+
-+        flicker -= dt;
-+        if(flicker <= 0){ flicker = rng(2,6) - floor*0.015; }
-+        if(Math.random() < (0.0008 + floor*0.00004)) blackout = rng(0.08, 0.35);
-+        blackout = Math.max(0, blackout - dt);
-+
-+        monsters.forEach(m => {
-+          const vx = player.x - m.x;
-+          const vy = player.y - m.y;
-+          const d = Math.hypot(vx,vy) || 1;
-+          m.x += (vx/d) * m.s * 60 * dt;
-+          m.y += (vy/d) * m.s * 60 * dt;
-+          if(d < 16 && gameState === STATE.PLAY){
-+            gameState = STATE.DEAD;
-+            deadUI.classList.add('show');
-+          }
-+        });
-+      }
-+
-+      if(gameState === STATE.ELEVATOR){
-+        elevatorTimer += dt;
-+        if(elevatorTimer > 2.4){
-+          if(floor >= 100){
-+            ending = true;
-+            finalUI.classList.add('show');
-+          } else {
-+            floor++;
-+            setupFloor();
-+            gameState = STATE.PLAY;
-+          }
-+        }
-+      }
-+
-+      const requirement = floorNeed();
-+      const nearChest = dist(player, chest) < 40 && !chest.taken;
-+      const nearElev = dist(player, elevator) < 52;
-+      if(gameState === STATE.PLAY && nearChest) showPrompt('[E] AÇ');
-+      else if(gameState === STATE.PLAY && nearElev) {
-+        showPrompt((inventory[requirement] ? '[E] ASANSÖR' : `[${requirement.toUpperCase()} GEREKLI]`));
-+      } else hidePrompt();
-+
-+      hud.innerHTML = `KAT ${floor} / 100<br>DURUM: ${gameState === STATE.ELEVATOR ? 'ASANSÖRDE' : 'KAYIP'}`;
-+      const items = [];
-+      if(inventory.key) items.push('Anahtar');
-+      if(inventory.card) items.push('Kart');
-+      inv.innerHTML = `ENVANTER<br>${items.length ? items.join(' • ') : '-'}`;
-+    }
-+
-+    function showPrompt(t){ prompt.textContent = t; prompt.classList.add('show'); }
-+    function hidePrompt(){ prompt.classList.remove('show'); }
-+    function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
-+
-+    function interact(){
-+      if(gameState !== STATE.PLAY) return;
-+      if(dist(player,chest) < 40 && !chest.taken) openChest();
-+      else if(dist(player,elevator) < 52){
-+        const req = floorNeed();
-+        if(inventory[req]){
-+          gameState = STATE.ELEVATOR;
-+          elevatorTimer = 0;
-+        }
-+      }
-+    }
-+
-+    function openChest(){
-+      gameState = STATE.CHEST_OPEN;
-+      chestUI.classList.add('show');
-+      chest.opened = true;
-+      chestSlots = Array.from({length:9},()=>null);
-+      chestSlots[randi(0,8)] = floorNeed();
-+      renderSlots();
-+    }
-+
-+    function closeChest(){
-+      chestUI.classList.remove('show');
-+      if(inventory[floorNeed()]) chest.taken = true;
-+      gameState = STATE.PLAY;
-+    }
-+
-+    function renderSlots(){
-+      slots.innerHTML = '';
-+      chestSlots.forEach((it,idx) => {
-+        const el = document.createElement('div');
-+        el.className = 'slot' + (it ? '' : ' empty');
-+        el.textContent = it ? (it === 'key' ? 'ANAHTAR' : 'KART') : '';
-+        if(it){
-+          el.onclick = () => {
-+            inventory[it] = true;
-+            chestSlots[idx] = null;
-+            renderSlots();
-+          };
-+        }
-+        slots.appendChild(el);
-+      });
-+    }
-+
-+    function draw(){
-+      cx.clearRect(0,0,innerWidth,innerHeight);
-+      cx.fillStyle = '#625b3d';
-+      cx.fillRect(0,0,innerWidth,innerHeight);
-+
-+      const shake = gameState === STATE.ELEVATOR ? Math.sin(performance.now()*0.05) * (2 + floor*0.04) : 0;
-+      cx.save();
-+      cx.translate(innerWidth/2 - camera.x + shake, innerHeight/2 - camera.y + shake);
-+
-+      const halls = gatherWorld();
-+      halls.forEach(h => {
-+        const c = 116 + h.tone;
-+        cx.fillStyle = `rgb(${c+18},${c+12},${c-8})`;
-+        cx.fillRect(h.x,h.y,h.w,h.h);
-+        cx.strokeStyle = 'rgba(38,36,28,.55)';
-+        cx.strokeRect(h.x,h.y,h.w,h.h);
-+      });
-+
-+      drawChest();
-+      drawElevator();
-+      monsters.forEach(drawMonster);
-+      drawPlayer();
-+      cx.restore();
-+
-+      const g = cx.createRadialGradient(innerWidth/2,innerHeight/2,140,innerWidth/2,innerHeight/2,Math.max(innerWidth,innerHeight)*0.62);
-+      g.addColorStop(0,'rgba(0,0,0,0)');
-+      g.addColorStop(1,'rgba(0,0,0,0.78)');
-+      cx.fillStyle = g;
-+      cx.fillRect(0,0,innerWidth,innerHeight);
-+
-+      if(blackout > 0){
-+        cx.fillStyle = `rgba(0,0,0,${Math.min(0.9, blackout*2.4)})`;
-+        cx.fillRect(0,0,innerWidth,innerHeight);
-+      }
-+    }
-+
-+    function drawPlayer(){
-+      const bob = Math.sin(player.breath*3) * 1.2;
-+      cx.fillStyle = '#1b1b1a';
-+      cx.beginPath();
-+      cx.ellipse(player.x, player.y + bob, 10, 13, 0, 0, Math.PI*2);
-+      cx.fill();
-+      cx.fillStyle = 'rgba(0,0,0,.3)';
-+      cx.beginPath();
-+      cx.ellipse(player.x, player.y+15, 12, 5, 0, 0, Math.PI*2);
-+      cx.fill();
-+    }
-+
-+    function drawMonster(m){
-+      cx.fillStyle = '#0a0a0a';
-+      cx.beginPath();
-+      cx.ellipse(m.x, m.y, 12, 15, 0, 0, Math.PI*2);
-+      cx.fill();
-+      cx.fillStyle = '#fff';
-+      cx.fillRect(m.x-5,m.y-2,3,3);
-+      cx.fillRect(m.x+2,m.y-2,3,3);
-+    }
-+
-+    function drawChest(){
-+      if(chest.taken) return;
-+      cx.fillStyle = '#3b3324';
-+      cx.fillRect(chest.x-12,chest.y-10,24,20);
-+      cx.fillStyle = '#857a5f';
-+      cx.fillRect(chest.x-12,chest.y-12,24,6);
-+    }
-+
-+    function drawElevator(){
-+      cx.fillStyle = '#5a5548';
-+      cx.fillRect(elevator.x-18,elevator.y-22,36,44);
-+      cx.fillStyle = '#8f8771';
-+      cx.fillRect(elevator.x-14,elevator.y-18,12,36);
-+      cx.fillRect(elevator.x+2,elevator.y-18,12,36);
-+    }
-+
-+    let last = performance.now();
-+    function loop(t){
-+      const dt = Math.min((t-last)/1000, 0.033);
-+      last = t;
-+      update(dt);
-+      draw();
-+      requestAnimationFrame(loop);
-+    }
-+
-+    playBtn.onclick = () => {
-+      menu.classList.add('hidden');
-+      gameState = STATE.PLAY;
-+      floor = 1;
-+      ending = false;
-+      deadUI.classList.remove('show');
-+      finalUI.classList.remove('show');
-+      setupFloor();
-+    };
-+
-+    requestAnimationFrame(loop);
-+  </script>
-+</body>
-+</html>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asansör</title>
+  <style>
+    :root{
+      --bg:#2d2a1f;
+      --paper:#746c4c;
+      --dirty:#5e573d;
+      --line:#3a3526;
+      --text:#e0d8b8;
+      --mute:#b8ae87;
+      --dark:#0a0a09;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Verdana,Arial,sans-serif;color:var(--text)}
+    canvas{display:block;width:100vw;height:100vh;background:#575236}
 
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10}
+    #menu{background:radial-gradient(circle at 50% 30%, rgba(153,146,106,.24), rgba(35,32,22,.9) 62%)}
+    .hidden{display:none}
+    #playBtn{
+      border:1px solid #857b57;
+      background:#6b6345;
+      color:#ede4bf;
+      letter-spacing:3px;
+      font-size:26px;
+      padding:18px 48px;
+      cursor:pointer;
+    }
+    #playBtn:hover{background:#766d4d}
+
+    #tinyHUD{
+      position:fixed;left:12px;top:10px;z-index:4;
+      font-size:12px;line-height:1.45;color:var(--mute);
+      background:rgba(44,41,30,.45);border:1px solid rgba(131,120,85,.45);padding:6px 8px;
+    }
+    #prompt{
+      position:fixed;left:50%;bottom:32px;transform:translateX(-50%);
+      z-index:6;font-size:14px;letter-spacing:1px;
+      border:1px solid #837953;background:rgba(52,48,34,.85);padding:8px 11px;display:none;
+    }
+    #prompt.show{display:block}
+
+    #chestPanel{
+      position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
+      background:rgba(7,7,6,.74);
+    }
+    #chestPanel.show{display:flex}
+    .panel{
+      width:min(360px,88vw);padding:14px;background:#524b34;border:1px solid #8f8360;
+    }
+    .panel h3{margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:1px;color:#d8cfa7}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+    .slot{aspect-ratio:1/1;border:1px solid #8f8360;background:#665d40;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#f3e8b8}
+    .slot.empty{background:#4f4832;border-color:#796f4e;cursor:default;color:#7c7357}
+    .panel p{font-size:11px;color:#c4b98f;margin:8px 0 0}
+
+    #death,#ending{
+      position:fixed;inset:0;z-index:14;display:none;align-items:center;justify-content:center;
+      text-align:center;background:rgba(0,0,0,.92);color:#d8d0ae;letter-spacing:2px
+    }
+    #death.show,#ending.show{display:flex}
+    #ending p,#death p{font-size:24px;margin:0}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="menu" class="overlay"><button id="playBtn">OYNA</button></div>
+  <div id="tinyHUD">KAT: 1 / 100<br>ENVANTER: -</div>
+  <div id="prompt"></div>
+
+  <div id="chestPanel">
+    <div class="panel">
+      <h3>DOLAP / ÇEKMECE</h3>
+      <div id="slots" class="grid"></div>
+      <p>Eşyayı almak için slota tıkla. Kapat: ESC</p>
+    </div>
+  </div>
+
+  <div id="death"><p>YAKALANDIN</p></div>
+  <div id="ending"><p>Hiçbir zaman yukarı çıkmıyordun.</p></div>
+
+  <script>
+    const cv = document.getElementById('game');
+    const cx = cv.getContext('2d');
+    const menu = document.getElementById('menu');
+    const playBtn = document.getElementById('playBtn');
+    const tinyHUD = document.getElementById('tinyHUD');
+    const prompt = document.getElementById('prompt');
+    const chestPanel = document.getElementById('chestPanel');
+    const slotsEl = document.getElementById('slots');
+    const deathUI = document.getElementById('death');
+    const endingUI = document.getElementById('ending');
+
+    const CHUNK_W = 820;
+    const FLOOR_H = 580;
+    const STATE = {MENU:0,PLAY:1,CHEST:2,ELEVATOR:3,CAUGHT:4,ENDING:5};
+
+    let state = STATE.MENU;
+    let floor = 1;
+    let floorSeed = 1;
+    let elevatorTimer = 0;
+    let caughtTimer = 0;
+    let endingTimer = 0;
+    let zoom = 1;
+
+    const keys = new Set();
+    const inventory = {key:false,card:false};
+    let chestSlots = [];
+
+    const player = {x:100,y:300,speed:128};
+    const cam = {x:0,y:0};
+    let chunks = new Map();
+    let monsters = [];
+    let interactable = {type:null,obj:null};
+
+    let elevator = {x:620,y:290,w:40,h:52};
+    let cabinet = {x:360,y:300,w:32,h:26,opened:false,looted:false,loot:'key'};
+
+    function resize(){ cv.width = innerWidth; cv.height = innerHeight; }
+    addEventListener('resize', resize); resize();
+
+    addEventListener('keydown', e => {
+      keys.add(e.key.toLowerCase());
+      if (e.key.toLowerCase() === 'e') interact();
+      if (e.key === 'Escape' && state === STATE.CHEST) closeChest();
+    });
+    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+
+    function rng(seed){
+      let t = seed >>> 0;
+      return () => {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ t >>> 15, 1 | t);
+        r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+        return ((r ^ r >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function needItem(){ return floor % 2 === 0 ? 'card' : 'key'; }
+
+    function resetFloor(){
+      floorSeed = floor * 9973;
+      chunks = new Map();
+      generateChunk(-1); generateChunk(0); generateChunk(1);
+      const central = chunks.get('0,0');
+      player.x = 100;
+      player.y = 280;
+      cam.x = player.x;
+      cam.y = player.y;
+
+      const rr = rng(floorSeed + 66);
+      elevator = {x:CHUNK_W * 0 + 620 + Math.floor(rr()*90), y:260 + Math.floor(rr()*70), w:42, h:56};
+      cabinet = {
+        x:CHUNK_W * 0 + 260 + Math.floor(rr()*260),
+        y:250 + Math.floor(rr()*120),
+        w:34,h:24, opened:false, looted:false,
+        loot: needItem()
+      };
+
+      monsters = [];
+      const mCount = Math.min(8, 2 + Math.floor(floor/13));
+      for(let i=0;i<mCount;i++){
+        const mr = rng(floorSeed + i*21 + 777);
+        const cxIdx = Math.floor(mr()*3)-1;
+        monsters.push({
+          x: cxIdx*CHUNK_W + 120 + mr()*560,
+          y: 120 + mr()*340,
+          spd: 35 + mr()*18
+        });
+      }
+    }
+
+    function generateChunk(ix){
+      const key = `${ix},0`;
+      if(chunks.has(key)) return;
+      const r = rng(floorSeed + ix*131);
+      const halls = [];
+      const blocks = 4 + Math.floor(r()*4);
+      let x = ix*CHUNK_W + 40;
+      for(let i=0;i<blocks;i++){
+        const w = 110 + r()*220;
+        const h = 90 + r()*180;
+        const y = 40 + r()*(FLOOR_H-h-40);
+        halls.push({x,y,w,h,tone:Math.floor(r()*20)-10});
+        x += w + 35 + r()*70;
+      }
+      chunks.set(key,{ix,halls,noise:r()*999});
+    }
+
+    function ensureChunks(){
+      const ix = Math.floor(player.x / CHUNK_W);
+      for(let d=-2; d<=2; d++) generateChunk(ix+d);
+    }
+
+    function update(dt){
+      if(state === STATE.PLAY){
+        let vx = 0, vy = 0;
+        if(keys.has('a') || keys.has('arrowleft')) vx -= 1;
+        if(keys.has('d') || keys.has('arrowright')) vx += 1;
+        if(keys.has('w') || keys.has('arrowup')) vy -= 1;
+        if(keys.has('s') || keys.has('arrowdown')) vy += 1;
+        const len = Math.hypot(vx,vy) || 1;
+        player.x += (vx/len) * player.speed * dt;
+        player.y += (vy/len) * player.speed * dt;
+        player.y = Math.max(40, Math.min(FLOOR_H-40, player.y));
+
+        ensureChunks();
+        updateMonsters(dt);
+        updateInteraction();
+
+        cam.x += (player.x - cam.x)*0.08;
+        cam.y += (player.y - cam.y)*0.08;
+      }
+
+      if(state === STATE.ELEVATOR){
+        elevatorTimer += dt;
+        cam.x += (elevator.x - cam.x)*0.03;
+        cam.y += (elevator.y - cam.y)*0.03;
+        if(floor < 100 && elevatorTimer > 2.2){
+          floor++;
+          inventory.key = false;
+          inventory.card = false;
+          state = STATE.PLAY;
+          elevatorTimer = 0;
+          resetFloor();
+        }
+        if(floor === 100){
+          endingTimer += dt;
+          cam.y += Math.sin(endingTimer*28) * 2.4;
+          if(endingTimer > 4){
+            state = STATE.ENDING;
+            endingUI.classList.add('show');
+          }
+        }
+      }
+
+      if(state === STATE.CAUGHT){
+        caughtTimer += dt;
+        zoom += dt * 0.28;
+        if(caughtTimer > 2.8) deathUI.classList.add('show');
+      }
+
+      updateHUD();
+    }
+
+    function updateMonsters(dt){
+      for(const m of monsters){
+        const dx = player.x - m.x;
+        const dy = player.y - m.y;
+        const d = Math.hypot(dx,dy) || 1;
+        m.x += (dx/d) * m.spd * dt;
+        m.y += (dy/d) * m.spd * dt;
+        if(d < 16 && state === STATE.PLAY){
+          state = STATE.CAUGHT;
+          caughtTimer = 0;
+        }
+      }
+    }
+
+    function updateInteraction(){
+      interactable = {type:null,obj:null};
+      const dCab = Math.hypot(player.x-cabinet.x, player.y-cabinet.y);
+      const dElv = Math.hypot(player.x-elevator.x, player.y-elevator.y);
+      if(!cabinet.looted && dCab < 55){
+        interactable = {type:'cabinet',obj:cabinet};
+        showPrompt('[E] AÇ');
+        return;
+      }
+      if(dElv < 64){
+        interactable = {type:'elevator',obj:elevator};
+        const req = needItem() === 'key' ? 'Anahtar' : 'Kart';
+        showPrompt(`[E] ASANSÖR (${req} GEREKLİ)`);
+        return;
+      }
+      hidePrompt();
+    }
+
+    function interact(){
+      if(state !== STATE.PLAY) return;
+      if(interactable.type === 'cabinet') openChest();
+      if(interactable.type === 'elevator'){
+        const req = needItem();
+        if(inventory[req]){
+          state = STATE.ELEVATOR;
+          elevatorTimer = 0;
+          endingTimer = 0;
+        }
+      }
+    }
+
+    function openChest(){
+      state = STATE.CHEST;
+      chestPanel.classList.add('show');
+      chestSlots = Array.from({length:8}, ()=> null);
+      const r = rng(floorSeed + 444);
+      chestSlots[Math.floor(r()*8)] = cabinet.loot;
+      renderSlots();
+    }
+
+    function closeChest(){
+      chestPanel.classList.remove('show');
+      state = STATE.PLAY;
+      if(inventory[cabinet.loot]) cabinet.looted = true;
+    }
+
+    function renderSlots(){
+      slotsEl.innerHTML = '';
+      chestSlots.forEach((it, idx) => {
+        const d = document.createElement('div');
+        d.className = 'slot' + (it ? '' : ' empty');
+        d.textContent = it ? (it === 'key' ? 'ANAHTAR' : 'KART') : '';
+        if(it){
+          d.onclick = () => {
+            inventory[it] = true;
+            chestSlots[idx] = null;
+            renderSlots();
+          };
+        }
+        slotsEl.appendChild(d);
+      });
+    }
+
+    function draw(){
+      cx.setTransform(1,0,0,1,0,0);
+      cx.clearRect(0,0,cv.width,cv.height);
+      cx.fillStyle = '#625a3e';
+      cx.fillRect(0,0,cv.width,cv.height);
+
+      cx.save();
+      cx.translate(cv.width/2, cv.height/2);
+      cx.scale(zoom, zoom);
+      cx.translate(-cam.x, -cam.y);
+
+      const currentIx = Math.floor(player.x / CHUNK_W);
+      for(const entry of chunks.values()){
+        const dist = Math.abs(entry.ix - currentIx);
+        for(const h of entry.halls){
+          const base = 124 + h.tone;
+          cx.fillStyle = `rgb(${base+16},${base+12},${base-10})`;
+          cx.fillRect(h.x,h.y,h.w,h.h);
+          cx.strokeStyle = 'rgba(48,44,31,.55)';
+          cx.strokeRect(h.x,h.y,h.w,h.h);
+        }
+        if(dist > 0){
+          cx.fillStyle = `rgba(35,33,25,${Math.min(0.7, dist*0.22)})`;
+          cx.fillRect(entry.ix*CHUNK_W, 0, CHUNK_W, FLOOR_H);
+        }
+      }
+
+      drawCabinet();
+      drawElevator();
+      monsters.forEach(drawMonster);
+      drawPlayer();
+
+      cx.restore();
+
+      const vignette = cx.createRadialGradient(cv.width/2, cv.height/2, 120, cv.width/2, cv.height/2, Math.max(cv.width,cv.height)*0.65);
+      vignette.addColorStop(0, 'rgba(0,0,0,0)');
+      vignette.addColorStop(1, 'rgba(0,0,0,0.74)');
+      cx.fillStyle = vignette;
+      cx.fillRect(0,0,cv.width,cv.height);
+
+      if(state === STATE.CAUGHT){
+        const a = Math.min(1, caughtTimer/3);
+        cx.fillStyle = `rgba(0,0,0,${a})`;
+        cx.fillRect(0,0,cv.width,cv.height);
+      }
+
+      if(state === STATE.ELEVATOR && floor === 100){
+        const a = Math.min(1, endingTimer/4);
+        cx.fillStyle = `rgba(0,0,0,${a*0.9})`;
+        cx.fillRect(0,0,cv.width,cv.height);
+      }
+    }
+
+    function drawPlayer(){
+      const jitter = Math.sin(performance.now()*0.006)*0.9;
+      cx.fillStyle = '#171715';
+      cx.beginPath();
+      cx.ellipse(player.x, player.y+jitter, 10, 14, 0, 0, Math.PI*2);
+      cx.fill();
+    }
+
+    function drawMonster(m){
+      cx.fillStyle = '#000';
+      cx.beginPath();
+      cx.ellipse(m.x, m.y, 12, 16, 0, 0, Math.PI*2);
+      cx.fill();
+      cx.fillStyle = '#fff';
+      cx.fillRect(m.x-5,m.y-2,3,3);
+      cx.fillRect(m.x+2,m.y-2,3,3);
+    }
+
+    function drawElevator(){
+      cx.fillStyle = '#4b4637';
+      cx.fillRect(elevator.x-20,elevator.y-26,elevator.w,elevator.h);
+      cx.fillStyle = '#7f765d';
+      cx.fillRect(elevator.x-16,elevator.y-22,14,48);
+      cx.fillRect(elevator.x+2,elevator.y-22,14,48);
+    }
+
+    function drawCabinet(){
+      if(cabinet.looted) return;
+      cx.fillStyle = '#3e3726';
+      cx.fillRect(cabinet.x-16,cabinet.y-12,cabinet.w,cabinet.h);
+      cx.fillStyle = '#6f664b';
+      cx.fillRect(cabinet.x-16,cabinet.y-12,cabinet.w,5);
+    }
+
+    function showPrompt(t){ prompt.textContent = t; prompt.classList.add('show'); }
+    function hidePrompt(){ prompt.classList.remove('show'); }
+
+    function updateHUD(){
+      const items = [];
+      if(inventory.key) items.push('Anahtar');
+      if(inventory.card) items.push('Kart');
+      tinyHUD.innerHTML = `KAT: ${floor} / 100<br>ENVANTER: ${items.length?items.join(' • '):'-'}`;
+    }
+
+    let last = performance.now();
+    function loop(t){
+      const dt = Math.min(0.033, (t-last)/1000);
+      last = t;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    playBtn.onclick = () => {
+      menu.classList.add('hidden');
+      deathUI.classList.remove('show');
+      endingUI.classList.remove('show');
+      state = STATE.PLAY;
+      floor = 1;
+      inventory.key = false;
+      inventory.card = false;
+      zoom = 1;
+      resetFloor();
+    };
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
