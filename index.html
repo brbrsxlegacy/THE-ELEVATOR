@@ -3,131 +3,115 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Asansör</title>
+  <title>THE ELEVATOR - Backrooms</title>
   <style>
     :root{
-      --bg:#2d2a1f;
-      --paper:#746c4c;
-      --dirty:#5e573d;
-      --line:#3a3526;
-      --text:#e0d8b8;
-      --mute:#b8ae87;
-      --dark:#0a0a09;
+      --bg:#17150f;
+      --fog:#0f0e0b;
+      --paper:#5a543f;
+      --ink:#1f1d16;
+      --text:#d5ccb1;
+      --muted:#9f967d;
+      --panel:#373224;
+      --panelLine:#69614a;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Verdana,Arial,sans-serif;color:var(--text)}
-    canvas{display:block;width:100vw;height:100vh;background:#575236}
+    html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Trebuchet MS,Arial,sans-serif;color:var(--text)}
+    canvas{display:block;width:100vw;height:100vh;background:#262214}
 
-    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10}
-    #menu{background:radial-gradient(circle at 50% 30%, rgba(153,146,106,.24), rgba(35,32,22,.9) 62%)}
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30}
+    #menu{background:radial-gradient(circle at 50% 25%, rgba(105,95,61,.22), rgba(8,7,5,.94) 65%)}
     .hidden{display:none}
-    #playBtn{
-      border:1px solid #857b57;
-      background:#6b6345;
-      color:#ede4bf;
-      letter-spacing:3px;
-      font-size:26px;
-      padding:18px 48px;
-      cursor:pointer;
-    }
-    #playBtn:hover{background:#766d4d}
+    #playBtn{border:1px solid #71674b;background:#4e4733;color:#e2d8b7;padding:16px 42px;letter-spacing:3px;font-size:22px;cursor:pointer}
+    #playBtn:hover{background:#5a523b}
 
-    #tinyHUD{
-      position:fixed;left:12px;top:10px;z-index:4;
-      font-size:12px;line-height:1.45;color:var(--mute);
-      background:rgba(44,41,30,.45);border:1px solid rgba(131,120,85,.45);padding:6px 8px;
-    }
-    #prompt{
-      position:fixed;left:50%;bottom:32px;transform:translateX(-50%);
-      z-index:6;font-size:14px;letter-spacing:1px;
-      border:1px solid #837953;background:rgba(52,48,34,.85);padding:8px 11px;display:none;
-    }
+    #hud{position:fixed;left:12px;top:10px;z-index:6;font-size:12px;line-height:1.5;color:var(--muted);background:rgba(26,24,18,.62);border:1px solid rgba(109,99,72,.45);padding:8px 9px}
+    #prompt{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:8;font-size:13px;letter-spacing:1.3px;border:1px solid #62593f;background:rgba(28,25,18,.9);padding:7px 10px;display:none}
     #prompt.show{display:block}
 
-    #chestPanel{
-      position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
-      background:rgba(7,7,6,.74);
-    }
+    #chestPanel{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.77);display:none;align-items:center;justify-content:center}
     #chestPanel.show{display:flex}
-    .panel{
-      width:min(360px,88vw);padding:14px;background:#524b34;border:1px solid #8f8360;
-    }
-    .panel h3{margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:1px;color:#d8cfa7}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-    .slot{aspect-ratio:1/1;border:1px solid #8f8360;background:#665d40;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#f3e8b8}
-    .slot.empty{background:#4f4832;border-color:#796f4e;cursor:default;color:#7c7357}
-    .panel p{font-size:11px;color:#c4b98f;margin:8px 0 0}
+    .panel{width:min(380px,90vw);background:var(--panel);border:1px solid var(--panelLine);padding:14px}
+    .panel h3{margin:0 0 10px;font-size:14px;letter-spacing:1.5px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .slot{aspect-ratio:1/1;border:1px solid #6b6248;background:#504834;display:flex;align-items:center;justify-content:center;font-size:11px;color:#efe3be;cursor:pointer}
+    .slot.empty{background:#3f3929;color:#786f57;cursor:default}
+    .panel p{font-size:11px;color:#b9ae8a;margin:9px 0 0}
 
-    #death,#ending{
-      position:fixed;inset:0;z-index:14;display:none;align-items:center;justify-content:center;
-      text-align:center;background:rgba(0,0,0,.92);color:#d8d0ae;letter-spacing:2px
-    }
+    #death,#ending{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);text-align:center}
     #death.show,#ending.show{display:flex}
-    #ending p,#death p{font-size:24px;margin:0}
+    #death p,#ending p{font-size:26px;letter-spacing:2px;margin:0;color:#d8cba5}
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
 
-  <div id="menu" class="overlay"><button id="playBtn">OYNA</button></div>
-  <div id="tinyHUD">KAT: 1 / 100<br>ENVANTER: -</div>
+  <div id="menu" class="overlay"><button id="playBtn">OYUNA BAŞLA</button></div>
+  <div id="hud"></div>
   <div id="prompt"></div>
 
   <div id="chestPanel">
     <div class="panel">
       <h3>DOLAP / ÇEKMECE</h3>
       <div id="slots" class="grid"></div>
-      <p>Eşyayı almak için slota tıkla. Kapat: ESC</p>
+      <p>Eşyayı almak için kutuya tıkla. Kapat: ESC</p>
     </div>
   </div>
 
-  <div id="death"><p>YAKALANDIN</p></div>
-  <div id="ending"><p>Hiçbir zaman yukarı çıkmıyordun.</p></div>
+  <div id="death"><p>KARANLIK SENİ BULDU.</p></div>
+  <div id="ending"><p>100. katta kapı açıldı... içerisi senden daha boştu.</p></div>
 
   <script>
     const cv = document.getElementById('game');
     const cx = cv.getContext('2d');
     const menu = document.getElementById('menu');
     const playBtn = document.getElementById('playBtn');
-    const tinyHUD = document.getElementById('tinyHUD');
+    const hud = document.getElementById('hud');
     const prompt = document.getElementById('prompt');
     const chestPanel = document.getElementById('chestPanel');
     const slotsEl = document.getElementById('slots');
     const deathUI = document.getElementById('death');
     const endingUI = document.getElementById('ending');
 
-    const CHUNK_W = 820;
-    const FLOOR_H = 580;
-    const STATE = {MENU:0,PLAY:1,CHEST:2,ELEVATOR:3,CAUGHT:4,ENDING:5};
+    const STATE = { MENU:0, PLAY:1, CHEST:2, ELEVATOR:3, DEAD:4, END:5 };
+    const WORLD_W = 4600;
+    const WORLD_H = 720;
+    const GRAV = 1880;
 
     let state = STATE.MENU;
     let floor = 1;
     let floorSeed = 1;
+    let keys = new Set();
+    let cam = {x:0,y:0,shake:0};
     let elevatorTimer = 0;
-    let caughtTimer = 0;
-    let endingTimer = 0;
-    let zoom = 1;
+    let deathTimer = 0;
 
-    const keys = new Set();
-    const inventory = {key:false,card:false};
+    const inventory = { key:false, card:false };
     let chestSlots = [];
+    let interactable = null;
 
-    const player = {x:100,y:300,speed:128,r:9};
-    const cam = {x:0,y:0};
-    let chunks = new Map();
+    const player = {
+      x:100,y:530,w:28,h:48,
+      vx:0,vy:0,
+      move:260,jump:640,
+      grounded:false,facing:1
+    };
+
+    let level = null;
     let monsters = [];
-    let interactable = {type:null,obj:null};
-
-    let elevator = {x:620,y:290,w:40,h:52};
-    let cabinet = {x:360,y:300,w:32,h:26,opened:false,looted:false,loot:'key'};
 
     function resize(){ cv.width = innerWidth; cv.height = innerHeight; }
     addEventListener('resize', resize); resize();
 
     addEventListener('keydown', e => {
-      keys.add(e.key.toLowerCase());
-      if (e.key.toLowerCase() === 'e') interact();
-      if (e.key === 'Escape' && state === STATE.CHEST) closeChest();
+      const k = e.key.toLowerCase();
+      keys.add(k);
+      if((k === 'w' || e.code === 'Space' || e.key === 'ArrowUp') && state === STATE.PLAY && player.grounded){
+        player.vy = -player.jump;
+        player.grounded = false;
+      }
+      if(k === 'e') interact();
+      if(e.key === 'Escape' && state === STATE.CHEST) closeChest();
     });
     addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
@@ -143,349 +127,397 @@
 
     function needItem(){ return floor % 2 === 0 ? 'card' : 'key'; }
 
-    function resetFloor(){
-      floorSeed = floor * 9973;
-      chunks = new Map();
-      generateChunk(-1); generateChunk(0); generateChunk(1);
-      const central = chunks.get('0,0');
-      player.x = 100;
-      player.y = 280;
-      cam.x = player.x;
-      cam.y = player.y;
+    function makeLevel(f){
+      const rr = rng(f * 9001);
+      const groundY = 620;
+      const solids = [{x:-80,y:groundY,w:WORLD_W+160,h:130,type:'ground'}];
+      const platforms = [];
+      const walls = [];
 
-      const rr = rng(floorSeed + 66);
-      elevator = {x:CHUNK_W * 0 + 620 + Math.floor(rr()*90), y:260 + Math.floor(rr()*70), w:42, h:56};
-      cabinet = {
-        x:CHUNK_W * 0 + 260 + Math.floor(rr()*260),
-        y:250 + Math.floor(rr()*120),
-        w:34,h:24, opened:false, looted:false,
-        loot: needItem()
+      for(let i=0;i<20;i++){
+        const x = 160 + i*210 + rr()*130;
+        const w = 110 + rr()*120;
+        const y = 390 + rr()*170;
+        platforms.push({x,y,w,h:24,type:'platform'});
+        solids.push(platforms[platforms.length-1]);
+      }
+
+      for(let i=0;i<26;i++){
+        const w = 34 + rr()*72;
+        const h = 70 + rr()*190;
+        const x = 150 + rr()*(WORLD_W-340);
+        const y = groundY - h;
+        const wall = {x,y,w,h,type:'wall'};
+        walls.push(wall);
+        solids.push(wall);
+      }
+
+      const elevator = {x:WORLD_W-300,y:groundY-160,w:90,h:160};
+      const cabinet = {
+        x:520 + rr()*800,
+        y:groundY-84,
+        w:74,h:84,
+        loot: needItem(),
+        looted:false
+      };
+      const drawer = {
+        x:1900 + rr()*900,
+        y:groundY-74,
+        w:92,h:74,
+        loot: needItem() === 'key' ? 'card' : 'key',
+        looted:false
       };
 
+      solids.push({x:elevator.x,y:elevator.y,w:elevator.w,h:elevator.h,type:'elevatorBody'});
+
+      return {groundY,solids,platforms,walls,elevator,cabinet,drawer};
+    }
+
+    function resetFloor(){
+      floorSeed = floor * 1117;
+      level = makeLevel(floor);
+      player.x = 120;
+      player.y = level.groundY - player.h;
+      player.vx = 0; player.vy = 0;
+      cam.x = player.x; cam.y = player.y;
+
+      const rr = rng(floorSeed + 77);
       monsters = [];
-      const mCount = Math.min(8, 2 + Math.floor(floor/13));
-      for(let i=0;i<mCount;i++){
-        const mr = rng(floorSeed + i*21 + 777);
-        const cxIdx = Math.floor(mr()*3)-1;
+      const count = Math.min(10, 2 + Math.floor(floor/12));
+      for(let i=0;i<count;i++){
         monsters.push({
-          x: cxIdx*CHUNK_W + 120 + mr()*560,
-          y: 120 + mr()*340,
-          spd: 35 + mr()*18
+          x:640 + rr()*(WORLD_W-920),
+          y:level.groundY - (40 + rr()*120),
+          w:30,h:56,
+          vx:(rr()<.5?-1:1)*(55 + rr()*45),
+          speed:65 + rr()*45,
+          drift:rr()*1000
         });
       }
     }
 
-    function generateChunk(ix){
-      const key = `${ix},0`;
-      if(chunks.has(key)) return;
-      const r = rng(floorSeed + ix*131);
-      const halls = [];
-      const walls = [];
-      const blocks = 4 + Math.floor(r()*4);
-      let x = ix*CHUNK_W + 40;
-      for(let i=0;i<blocks;i++){
-        const w = 110 + r()*220;
-        const h = 90 + r()*180;
-        const y = 40 + r()*(FLOOR_H-h-40);
-        halls.push({x,y,w,h,tone:Math.floor(r()*20)-10});
-
-        const edge = 8;
-        walls.push({x:x-edge,y:y-edge,w:w+edge*2,h:edge,noise:r()*999});
-        walls.push({x:x-edge,y:y+h,w:w+edge*2,h:edge,noise:r()*999});
-        walls.push({x:x-edge,y:y,w:edge,h:h,noise:r()*999});
-        walls.push({x:x+w,y:y,w:edge,h:h,noise:r()*999});
-
-        const obstacles = 1 + Math.floor(r()*2);
-        for(let j=0;j<obstacles;j++){
-          const ow = 18 + r()*34;
-          const oh = 18 + r()*34;
-          const ox = x + 14 + r()*Math.max(4,w-ow-28);
-          const oy = y + 14 + r()*Math.max(4,h-oh-28);
-          walls.push({x:ox,y:oy,w:ow,h:oh,noise:r()*999});
-        }
-
-        x += w + 35 + r()*70;
-      }
-      chunks.set(key,{ix,halls,walls,noise:r()*999});
+    function aabb(a,b){
+      return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
     }
 
-    function circleRectHit(px,py,pr,rect){
-      const nx = Math.max(rect.x, Math.min(px, rect.x + rect.w));
-      const ny = Math.max(rect.y, Math.min(py, rect.y + rect.h));
-      const dx = px - nx;
-      const dy = py - ny;
-      return (dx*dx + dy*dy) < pr*pr;
-    }
-
-    function collidesWithWall(x,y){
-      const ix = Math.floor(x / CHUNK_W);
-      for(let d=-2; d<=2; d++){
-        const entry = chunks.get(`${ix+d},0`);
-        if(!entry) continue;
-        for(const wall of entry.walls){
-          if(circleRectHit(x,y,player.r,wall)) return true;
-        }
-      }
-      return false;
-    }
-
-    function ensureChunks(){
-      const ix = Math.floor(player.x / CHUNK_W);
-      for(let d=-2; d<=2; d++) generateChunk(ix+d);
-    }
-
-    function update(dt){
-      if(state === STATE.PLAY){
-        let vx = 0, vy = 0;
-        if(keys.has('a') || keys.has('arrowleft')) vx -= 1;
-        if(keys.has('d') || keys.has('arrowright')) vx += 1;
-        if(keys.has('w') || keys.has('arrowup')) vy -= 1;
-        if(keys.has('s') || keys.has('arrowdown')) vy += 1;
-        const len = Math.hypot(vx,vy) || 1;
-        const stepX = (vx/len) * player.speed * dt;
-        const stepY = (vy/len) * player.speed * dt;
-
-        const nx = player.x + stepX;
-        if(!collidesWithWall(nx, player.y)) player.x = nx;
-
-        const ny = player.y + stepY;
-        if(!collidesWithWall(player.x, ny)) player.y = ny;
-
-        player.y = Math.max(40, Math.min(FLOOR_H-40, player.y));
-
-        ensureChunks();
-        updateMonsters(dt);
-        updateInteraction();
-
-        cam.x += (player.x - cam.x)*0.08;
-        cam.y += (player.y - cam.y)*0.08;
-      }
-
-      if(state === STATE.ELEVATOR){
-        elevatorTimer += dt;
-        cam.x += (elevator.x - cam.x)*0.03;
-        cam.y += (elevator.y - cam.y)*0.03;
-        if(floor < 100 && elevatorTimer > 2.2){
-          floor++;
-          inventory.key = false;
-          inventory.card = false;
-          state = STATE.PLAY;
-          elevatorTimer = 0;
-          resetFloor();
-        }
-        if(floor === 100){
-          endingTimer += dt;
-          cam.y += Math.sin(endingTimer*28) * 2.4;
-          if(endingTimer > 4){
-            state = STATE.ENDING;
-            endingUI.classList.add('show');
+    function resolve(axis){
+      const box = {x:player.x,y:player.y,w:player.w,h:player.h};
+      player.grounded = false;
+      for(const s of level.solids){
+        if(!aabb(box,s)) continue;
+        if(axis === 'x'){
+          if(player.vx > 0) player.x = s.x - player.w;
+          else if(player.vx < 0) player.x = s.x + s.w;
+          player.vx = 0;
+          box.x = player.x;
+        }else{
+          if(player.vy > 0){
+            player.y = s.y - player.h;
+            player.grounded = true;
+          }else if(player.vy < 0){
+            player.y = s.y + s.h;
           }
+          player.vy = 0;
+          box.y = player.y;
         }
       }
-
-      if(state === STATE.CAUGHT){
-        caughtTimer += dt;
-        zoom += dt * 0.28;
-        if(caughtTimer > 2.8) deathUI.classList.add('show');
-      }
-
-      updateHUD();
     }
 
     function updateMonsters(dt){
       for(const m of monsters){
-        const dx = player.x - m.x;
-        const dy = player.y - m.y;
-        const d = Math.hypot(dx,dy) || 1;
-        m.x += (dx/d) * m.spd * dt;
-        m.y += (dy/d) * m.spd * dt;
-        if(d < 16 && state === STATE.PLAY){
-          state = STATE.CAUGHT;
-          caughtTimer = 0;
+        m.drift += dt;
+        const toward = player.x - m.x;
+        m.vx += Math.sign(toward) * dt * 40;
+        m.vx = Math.max(-m.speed, Math.min(m.speed, m.vx));
+        m.x += m.vx * dt;
+        m.y += Math.sin(m.drift*4) * 12 * dt;
+
+        if(m.x < 90 || m.x > WORLD_W-90) m.vx *= -1;
+
+        if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, {x:m.x,y:m.y,w:m.w,h:m.h}) && state === STATE.PLAY){
+          state = STATE.DEAD;
+          deathTimer = 0;
         }
       }
     }
 
     function updateInteraction(){
-      interactable = {type:null,obj:null};
-      const dCab = Math.hypot(player.x-cabinet.x, player.y-cabinet.y);
-      const dElv = Math.hypot(player.x-elevator.x, player.y-elevator.y);
-      if(!cabinet.looted && dCab < 55){
-        interactable = {type:'cabinet',obj:cabinet};
+      interactable = null;
+      const center = {x:player.x + player.w/2, y:player.y + player.h/2};
+
+      function near(obj, dist){
+        const cx = obj.x + obj.w/2;
+        const cy = obj.y + obj.h/2;
+        return Math.hypot(center.x-cx, center.y-cy) < dist;
+      }
+
+      if(!level.cabinet.looted && near(level.cabinet, 90)){
+        interactable = {type:'cabinet', obj:level.cabinet};
         showPrompt('[E] AÇ');
         return;
       }
-      if(dElv < 64){
-        interactable = {type:'elevator',obj:elevator};
-        const req = needItem() === 'key' ? 'Anahtar' : 'Kart';
-        showPrompt(`[E] ASANSÖR (${req} GEREKLİ)`);
+      if(!level.drawer.looted && near(level.drawer, 90)){
+        interactable = {type:'drawer', obj:level.drawer};
+        showPrompt('[E] AÇ');
+        return;
+      }
+      if(near(level.elevator, 110)){
+        const req = needItem() === 'key' ? 'ANAHTAR' : 'KART';
+        interactable = {type:'elevator', obj:level.elevator};
+        showPrompt(`[E] ASANSÖR (${req})`);
         return;
       }
       hidePrompt();
     }
 
-    function interact(){
-      if(state !== STATE.PLAY) return;
-      if(interactable.type === 'cabinet') openChest();
-      if(interactable.type === 'elevator'){
-        const req = needItem();
-        if(inventory[req]){
-          state = STATE.ELEVATOR;
-          elevatorTimer = 0;
-          endingTimer = 0;
-        }
-      }
-    }
-
-    function openChest(){
+    function openChest(target){
       state = STATE.CHEST;
       chestPanel.classList.add('show');
+      const rr = rng(floorSeed + target.x);
       chestSlots = Array.from({length:8}, ()=> null);
-      const r = rng(floorSeed + 444);
-      chestSlots[Math.floor(r()*8)] = cabinet.loot;
-      renderSlots();
+      chestSlots[Math.floor(rr()*8)] = target.loot;
+      renderSlots(target);
+    }
+
+    function renderSlots(target){
+      slotsEl.innerHTML = '';
+      chestSlots.forEach((item, idx) => {
+        const el = document.createElement('div');
+        el.className = 'slot' + (item ? '' : ' empty');
+        el.textContent = item ? (item === 'key' ? 'ANAHTAR' : 'KART') : '';
+        if(item){
+          el.onclick = () => {
+            inventory[item] = true;
+            chestSlots[idx] = null;
+            target.looted = true;
+            renderSlots(target);
+          };
+        }
+        slotsEl.appendChild(el);
+      });
     }
 
     function closeChest(){
       chestPanel.classList.remove('show');
       state = STATE.PLAY;
-      if(inventory[cabinet.loot]) cabinet.looted = true;
     }
 
-    function renderSlots(){
-      slotsEl.innerHTML = '';
-      chestSlots.forEach((it, idx) => {
-        const d = document.createElement('div');
-        d.className = 'slot' + (it ? '' : ' empty');
-        d.textContent = it ? (it === 'key' ? 'ANAHTAR' : 'KART') : '';
-        if(it){
-          d.onclick = () => {
-            inventory[it] = true;
-            chestSlots[idx] = null;
-            renderSlots();
-          };
+    function interact(){
+      if(state !== STATE.PLAY || !interactable) return;
+      if(interactable.type === 'cabinet' || interactable.type === 'drawer') openChest(interactable.obj);
+      if(interactable.type === 'elevator'){
+        if(inventory[needItem()]){
+          state = STATE.ELEVATOR;
+          elevatorTimer = 0;
+          cam.shake = 1;
         }
-        slotsEl.appendChild(d);
-      });
+      }
     }
 
-    function draw(){
-      cx.setTransform(1,0,0,1,0,0);
-      cx.clearRect(0,0,cv.width,cv.height);
-      cx.fillStyle = '#625a3e';
-      cx.fillRect(0,0,cv.width,cv.height);
+    function update(dt){
+      if(state === STATE.PLAY){
+        let dir = 0;
+        if(keys.has('a') || keys.has('arrowleft')) dir -= 1;
+        if(keys.has('d') || keys.has('arrowright')) dir += 1;
+        player.vx = dir * player.move;
+        if(dir !== 0) player.facing = dir;
 
-      cx.save();
-      cx.translate(cv.width/2, cv.height/2);
-      cx.scale(zoom, zoom);
-      cx.translate(-cam.x, -cam.y);
+        player.vy += GRAV * dt;
+        player.x += player.vx * dt;
+        resolve('x');
+        player.y += player.vy * dt;
+        resolve('y');
 
-      const currentIx = Math.floor(player.x / CHUNK_W);
-      for(const entry of chunks.values()){
-        const dist = Math.abs(entry.ix - currentIx);
+        player.x = Math.max(30, Math.min(WORLD_W - player.w - 30, player.x));
 
-        for(const h of entry.halls){
-          const base = 124 + h.tone;
-          cx.fillStyle = `rgb(${base+16},${base+12},${base-10})`;
-          cx.fillRect(h.x,h.y,h.w,h.h);
-          cx.strokeStyle = 'rgba(48,44,31,.55)';
-          cx.strokeRect(h.x,h.y,h.w,h.h);
-        }
+        updateMonsters(dt);
+        updateInteraction();
 
-        for(const wall of entry.walls){
-          const grad = cx.createLinearGradient(wall.x, wall.y, wall.x + wall.w, wall.y + wall.h);
-          grad.addColorStop(0, '#141311');
-          grad.addColorStop(1, '#080807');
-          cx.fillStyle = grad;
-          cx.fillRect(wall.x,wall.y,wall.w,wall.h);
+        cam.x += ((player.x + player.w/2) - cam.x) * 0.12;
+        cam.y += ((player.y + player.h/2) - cam.y) * 0.08;
+      }
 
-          const speckCount = Math.max(1, Math.floor((wall.w * wall.h) / 180));
-          for(let i=0;i<speckCount;i++){
-            const n = Math.sin((wall.noise + i*31.7) * 0.73);
-            const fx = ((n * 43758.5453) % 1 + 1) % 1;
-            const fy = ((Math.sin((wall.noise + i*19.3) * 1.17) * 9631.12) % 1 + 1) % 1;
-            const a = 0.04 + (((Math.sin((wall.noise + i*7.1)*3.7)+1)*0.5) * 0.09);
-            cx.fillStyle = `rgba(182,170,126,${a})`;
-            cx.fillRect(wall.x + fx*wall.w, wall.y + fy*wall.h, 2, 2);
+      if(state === STATE.ELEVATOR){
+        elevatorTimer += dt;
+        cam.shake = Math.max(0, cam.shake - dt*0.7);
+        if(elevatorTimer > 2.25){
+          if(floor >= 100){
+            state = STATE.END;
+            endingUI.classList.add('show');
+          }else{
+            floor++;
+            inventory.key = false;
+            inventory.card = false;
+            state = STATE.PLAY;
+            resetFloor();
           }
-          cx.strokeStyle = 'rgba(24,24,21,.8)';
-          cx.strokeRect(wall.x,wall.y,wall.w,wall.h);
-        }
-        if(dist > 0){
-          cx.fillStyle = `rgba(35,33,25,${Math.min(0.7, dist*0.22)})`;
-          cx.fillRect(entry.ix*CHUNK_W, 0, CHUNK_W, FLOOR_H);
         }
       }
 
-      drawCabinet();
-      drawElevator();
-      monsters.forEach(drawMonster);
-      drawPlayer();
+      if(state === STATE.DEAD){
+        deathTimer += dt;
+        if(deathTimer > 2) deathUI.classList.add('show');
+      }
 
-      cx.restore();
+      hud.innerHTML = `KAT: ${floor} / 100<br>ENVANTER: ${(inventory.key?'Anahtar ':'') + (inventory.card?'Kart':'') || '-'}`;
+    }
 
-      const vignette = cx.createRadialGradient(cv.width/2, cv.height/2, 120, cv.width/2, cv.height/2, Math.max(cv.width,cv.height)*0.65);
-      vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(0,0,0,0.74)');
-      cx.fillStyle = vignette;
+    function drawBackground(){
+      const g = cx.createLinearGradient(0,0,0,cv.height);
+      g.addColorStop(0,'#3f3926');
+      g.addColorStop(0.4,'#2b2619');
+      g.addColorStop(1,'#18150f');
+      cx.fillStyle = g;
       cx.fillRect(0,0,cv.width,cv.height);
 
-      if(state === STATE.CAUGHT){
-        const a = Math.min(1, caughtTimer/3);
-        cx.fillStyle = `rgba(0,0,0,${a})`;
-        cx.fillRect(0,0,cv.width,cv.height);
+      for(let i=0;i<120;i++){
+        const x = (i*211 % cv.width);
+        const y = (i*137 % cv.height);
+        const a = 0.02 + ((i*41)%100)/4000;
+        cx.fillStyle = `rgba(240,220,170,${a})`;
+        cx.fillRect(x,y,2,2);
+      }
+    }
+
+    function worldToScreen(){
+      cx.translate(cv.width/2, cv.height*0.55);
+      const shakeX = (Math.random()-0.5) * cam.shake * 10;
+      const shakeY = (Math.random()-0.5) * cam.shake * 8;
+      cx.translate(shakeX, shakeY);
+      cx.translate(-cam.x, -cam.y);
+    }
+
+    function drawTexturedRect(x,y,w,h){
+      const g = cx.createLinearGradient(x,y,x,y+h);
+      g.addColorStop(0,'#120f0d');
+      g.addColorStop(1,'#080707');
+      cx.fillStyle = g;
+      cx.fillRect(x,y,w,h);
+      for(let i=0;i<Math.max(12, (w*h)/200);i++){
+        const px = x + ((i*19.3)%1) * w;
+        const py = y + ((Math.sin(i*4.7)*0.5+0.5))*h;
+        cx.fillStyle = `rgba(170,150,118,${0.03 + (i%4)*0.01})`;
+        cx.fillRect(px,py,1.4,1.4);
+      }
+      cx.strokeStyle = 'rgba(24,22,19,.95)';
+      cx.strokeRect(x,y,w,h);
+    }
+
+    function drawLevel(){
+      cx.fillStyle = '#2b261b';
+      cx.fillRect(0, level.groundY, WORLD_W, WORLD_H-level.groundY+120);
+
+      for(const p of level.platforms){
+        const g = cx.createLinearGradient(p.x,p.y,p.x,p.y+p.h);
+        g.addColorStop(0,'#3a3526');
+        g.addColorStop(1,'#242014');
+        cx.fillStyle = g;
+        cx.fillRect(p.x,p.y,p.w,p.h);
+        cx.fillStyle = 'rgba(150,136,99,.08)';
+        cx.fillRect(p.x,p.y,p.w,3);
       }
 
-      if(state === STATE.ELEVATOR && floor === 100){
-        const a = Math.min(1, endingTimer/4);
-        cx.fillStyle = `rgba(0,0,0,${a*0.9})`;
-        cx.fillRect(0,0,cv.width,cv.height);
+      for(const w of level.walls) drawTexturedRect(w.x,w.y,w.w,w.h);
+
+      const e = level.elevator;
+      cx.fillStyle = '#222017';
+      cx.fillRect(e.x,e.y,e.w,e.h);
+      cx.fillStyle = '#5a533b';
+      cx.fillRect(e.x+6,e.y+6,e.w/2-8,e.h-12);
+      cx.fillRect(e.x+e.w/2+2,e.y+6,e.w/2-8,e.h-12);
+      cx.fillStyle = 'rgba(0,0,0,.35)';
+      cx.fillRect(e.x,e.y,e.w,10);
+
+      drawStorage(level.cabinet, false);
+      drawStorage(level.drawer, true);
+    }
+
+    function drawStorage(s,drawer=false){
+      if(s.looted) return;
+      cx.fillStyle = '#302a1e';
+      cx.fillRect(s.x,s.y,s.w,s.h);
+      cx.strokeStyle = '#1a1711';
+      cx.strokeRect(s.x,s.y,s.w,s.h);
+      cx.fillStyle = '#655c43';
+      if(drawer){
+        cx.fillRect(s.x+8,s.y+10,s.w-16,20);
+        cx.fillRect(s.x+8,s.y+40,s.w-16,20);
+      }else{
+        cx.fillRect(s.x+6,s.y+8,s.w-12,s.h-16);
       }
+      cx.fillStyle = '#1b1913';
+      cx.beginPath();
+      cx.arc(s.x+s.w-14,s.y+s.h/2,2.5,0,Math.PI*2);
+      cx.fill();
     }
 
     function drawPlayer(){
-      const jitter = Math.sin(performance.now()*0.006)*0.9;
-      cx.fillStyle = '#171715';
+      const x = player.x, y = player.y;
+      const sway = Math.sin(performance.now()*0.012 + x*0.03)*1.2;
+      cx.fillStyle = '#1a1812';
       cx.beginPath();
-      cx.ellipse(player.x, player.y+jitter, player.r+1, 14, 0, 0, Math.PI*2);
+      cx.ellipse(x+14,y+14+sway,10,12,0,0,Math.PI*2);
       cx.fill();
+      cx.beginPath();
+      cx.moveTo(x+14,y+22);
+      cx.lineTo(x+5,y+46);
+      cx.lineTo(x+23,y+46);
+      cx.closePath();
+      cx.fill();
+      cx.fillStyle = '#d8d0b8';
+      cx.fillRect(x+10 + player.facing*2,y+12,3,2);
+      cx.fillRect(x+15 + player.facing*2,y+12,3,2);
     }
 
     function drawMonster(m){
+      const bob = Math.sin(m.drift*6)*2;
       cx.fillStyle = '#000';
       cx.beginPath();
-      cx.ellipse(m.x, m.y, 12, 16, 0, 0, Math.PI*2);
+      cx.ellipse(m.x+m.w/2,m.y+20+bob,14,18,0,0,Math.PI*2);
+      cx.fill();
+      cx.beginPath();
+      cx.moveTo(m.x+m.w/2,m.y+28+bob);
+      cx.lineTo(m.x+4,m.y+m.h+bob);
+      cx.lineTo(m.x+m.w-4,m.y+m.h+bob);
+      cx.closePath();
       cx.fill();
       cx.fillStyle = '#fff';
-      cx.fillRect(m.x-5,m.y-2,3,3);
-      cx.fillRect(m.x+2,m.y-2,3,3);
+      cx.fillRect(m.x+10,m.y+17+bob,3,3);
+      cx.fillRect(m.x+17,m.y+17+bob,3,3);
     }
 
-    function drawElevator(){
-      cx.fillStyle = '#4b4637';
-      cx.fillRect(elevator.x-20,elevator.y-26,elevator.w,elevator.h);
-      cx.fillStyle = '#7f765d';
-      cx.fillRect(elevator.x-16,elevator.y-22,14,48);
-      cx.fillRect(elevator.x+2,elevator.y-22,14,48);
+    function drawVignette(){
+      const vg = cx.createRadialGradient(cv.width/2,cv.height/2,80,cv.width/2,cv.height/2,Math.max(cv.width,cv.height)*0.68);
+      vg.addColorStop(0,'rgba(0,0,0,0)');
+      vg.addColorStop(1,'rgba(0,0,0,.8)');
+      cx.fillStyle = vg;
+      cx.fillRect(0,0,cv.width,cv.height);
     }
 
-    function drawCabinet(){
-      if(cabinet.looted) return;
-      cx.fillStyle = '#3e3726';
-      cx.fillRect(cabinet.x-16,cabinet.y-12,cabinet.w,cabinet.h);
-      cx.fillStyle = '#6f664b';
-      cx.fillRect(cabinet.x-16,cabinet.y-12,cabinet.w,5);
+    function draw(){
+      drawBackground();
+      cx.save();
+      worldToScreen();
+      drawLevel();
+      monsters.forEach(drawMonster);
+      drawPlayer();
+      cx.restore();
+      drawVignette();
+
+      if(state === STATE.ELEVATOR){
+        const a = Math.min(1, elevatorTimer/2.2);
+        cx.fillStyle = `rgba(0,0,0,${a*0.8})`;
+        cx.fillRect(0,0,cv.width,cv.height);
+      }
+      if(state === STATE.DEAD){
+        const a = Math.min(1, deathTimer/2);
+        cx.fillStyle = `rgba(0,0,0,${a})`;
+        cx.fillRect(0,0,cv.width,cv.height);
+      }
     }
 
     function showPrompt(t){ prompt.textContent = t; prompt.classList.add('show'); }
     function hidePrompt(){ prompt.classList.remove('show'); }
-
-    function updateHUD(){
-      const items = [];
-      if(inventory.key) items.push('Anahtar');
-      if(inventory.card) items.push('Kart');
-      tinyHUD.innerHTML = `KAT: ${floor} / 100<br>ENVANTER: ${items.length?items.join(' • '):'-'}`;
-    }
 
     let last = performance.now();
     function loop(t){
@@ -497,14 +529,13 @@
     }
 
     playBtn.onclick = () => {
-      menu.classList.add('hidden');
-      deathUI.classList.remove('show');
-      endingUI.classList.remove('show');
       state = STATE.PLAY;
       floor = 1;
       inventory.key = false;
       inventory.card = false;
-      zoom = 1;
+      deathUI.classList.remove('show');
+      endingUI.classList.remove('show');
+      menu.classList.add('hidden');
       resetFloor();
     };
 
@@ -512,3 +543,4 @@
   </script>
 </body>
 </html>
+
