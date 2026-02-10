@@ -1,592 +1,868 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>THE ELEVATOR</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-/* ================= RESET ================= */
-*{box-sizing:border-box}
-html,body{
-  margin:0;padding:0;overflow:hidden;
-  background:#080808;
-  font-family:system-ui,Arial,sans-serif;
-  color:#e0e0e0;
-}
-canvas{display:block}
-
-/* ================= HUD ================= */
-#hud{
-  position:fixed;left:12px;top:12px;
-  background:rgba(0,0,0,.55);
-  border:1px solid #222;
-  padding:8px 10px;
-  font-size:13px;
-  z-index:5;
-}
-#hint{
-  position:fixed;left:50%;bottom:28px;
-  transform:translateX(-50%);
-  background:rgba(0,0,0,.7);
-  border:1px solid #333;
-  padding:6px 10px;
-  display:none;
-  z-index:6;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE ELEVATOR</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050505;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      image-rendering: auto;
+      cursor: crosshair;
+    }
+  </style>
 </head>
 <body>
-
-<canvas id="cv"></canvas>
-<div id="hud">KAT: 1 / 100<br>ENVANTER: -</div>
-<div id="hint">[E]</div>
-
+<canvas id="game"></canvas>
 <script>
 "use strict";
 
-/* =========================================================
-   ENGINE CORE
-   ========================================================= */
+// ============================================================
+// ENGINE
+// ============================================================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d", { alpha: false });
 
-/* ================= CANVAS ================= */
-const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
-
-function resize(){
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.floor(innerWidth * dpr);
-  cv.height = Math.floor(innerHeight * dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+function resize() {
+  canvas.width = Math.floor(innerWidth * DPR);
+  canvas.height = Math.floor(innerHeight * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 addEventListener("resize", resize);
 resize();
 
-/* ================= INPUT ================= */
-const KEY = Object.create(null);
-addEventListener("keydown", e=>{
-  KEY[e.key.toLowerCase()] = true;
+const Keys = Object.create(null);
+const Pressed = Object.create(null);
+addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (!Keys[k]) Pressed[k] = true;
+  Keys[k] = true;
+  if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+  Audio.ensure();
 });
-addEventListener("keyup", e=>{
-  KEY[e.key.toLowerCase()] = false;
+addEventListener("keyup", (e) => {
+  Keys[e.key.toLowerCase()] = false;
 });
-
-/* ================= CONSTANTS ================= */
-const TILE = 48;
-const GRAVITY = 1800;
-const MAX_FALL = 1400;
-
-/* ================= GAME STATE ================= */
-const Game = {
-  floor: 1,
-  state: "PLAY", // PLAY, CHEST, ELEVATOR, DEAD, END
-  shake: 0,
-  time: 0
-};
-
-/* ================= TILE MAP ================= */
-/* 1 = SOLID WALL, 0 = EMPTY */
-const MAP = [
-"111111111111111111111111111111111",
-"100000000000000000000000000000001",
-"100000000001111111111100000000001",
-"100000000001000000000100000000001",
-"100000000001000000000100000000001",
-"100000000001000000000111111100001",
-"100000000001000000000000000100001",
-"100000000001000000000000000100001",
-"100000000001111111111000000100001",
-"100000000000000000001000000100001",
-"100000000000000000001000000100001",
-"100001111111111000001111111100001",
-"100000000000000000000000000000001",
-"111111111111111111111111111111111"
-];
-
-/* ================= CAMERA ================= */
-const Camera = {
-  x: 0,
-  y: 0,
-  update(tx, ty){
-    this.x += (tx - this.x) * 0.08;
-    this.y += (ty - this.y) * 0.08;
+function takePress(k) {
+  if (Pressed[k]) {
+    Pressed[k] = false;
+    return true;
   }
-};
-
-/* ================= PLAYER ================= */
-const Player = {
-  x: TILE*2,
-  y: TILE*2,
-  w: 26,
-  h: 38,
-  vx: 0,
-  vy: 0,
-  speed: 260,
-  jump: -620,
-  onGround: false,
-  update(dt){
-    /* Horizontal */
-    this.vx = 0;
-    if(KEY["a"]) this.vx = -this.speed;
-    if(KEY["d"]) this.vx =  this.speed;
-
-    /* Jump */
-    if((KEY[" "] || KEY["space"]) && this.onGround){
-      this.vy = this.jump;
-      this.onGround = false;
-    }
-
-    /* Gravity */
-    this.vy += GRAVITY * dt;
-    if(this.vy > MAX_FALL) this.vy = MAX_FALL;
-
-    /* X axis */
-    this.x += this.vx * dt;
-    if(collide(this.x, this.y, this.w, this.h)){
-      this.x -= this.vx * dt;
-    }
-
-    /* Y axis */
-    this.y += this.vy * dt;
-    if(collide(this.x, this.y, this.w, this.h)){
-      this.y -= this.vy * dt;
-      if(this.vy > 0) this.onGround = true;
-      this.vy = 0;
-    } else {
-      this.onGround = false;
-    }
-  },
-  draw(){
-    ctx.fillStyle = "#0a0a0a";
-    ctx.fillRect(this.x, this.y, this.w, this.h);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(this.x+6, this.y+10, 4, 4);
-    ctx.fillRect(this.x+16, this.y+10, 4, 4);
-  }
-};
-
-/* ================= COLLISION ================= */
-function solidAt(tx, ty){
-  if(ty<0||ty>=MAP.length||tx<0||tx>=MAP[0].length) return true;
-  return MAP[ty][tx] === "1";
+  return false;
 }
 
-function collide(x,y,w,h){
-  const x0 = Math.floor(x / TILE);
-  const y0 = Math.floor(y / TILE);
-  const x1 = Math.floor((x+w-1) / TILE);
-  const y1 = Math.floor((y+h-1) / TILE);
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function smoothDamp(cur, target, smoothing, dt) {
+  return lerp(cur, target, 1 - Math.exp(-smoothing * dt));
+}
 
-  for(let yy=y0; yy<=y1; yy++){
-    for(let xx=x0; xx<=x1; xx++){
-      if(solidAt(xx,yy)) return true;
+const TILE = 36;
+const WORLD_W = 220;
+const WORLD_H = 22;
+const FLOOR_TOP = WORLD_H - 3;
+const GRAVITY = 1800;
+const MAX_FALL = 1100;
+
+const game = {
+  floor: 1,
+  maxFloor: 100,
+  state: "play", // play | inventory | dead | ending
+  prompt: "",
+  flash: 0,
+  flicker: 0,
+  shake: 0,
+  fade: 1,
+  fadeTarget: 0,
+  transitionTimer: 0,
+  deathTimer: 0,
+  time: 0,
+};
+
+const camera = { x: 0, y: 0, tx: 0, ty: 0 };
+
+// ============================================================
+// WORLD
+// ============================================================
+function rngSeed(seed) {
+  let t = seed >>> 0;
+  return function() {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const world = {
+  tiles: [],
+  solids: new Uint8Array(WORLD_W * WORLD_H),
+  platforms: [],
+  chest: null,
+  elevator: null,
+  monsters: [],
+  grain: null,
+};
+
+const inventory = { keys: 0, cards: 0 };
+
+function idx(x, y) { return y * WORLD_W + x; }
+function isSolidTile(x, y) {
+  if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return true;
+  return world.solids[idx(x, y)] === 1;
+}
+
+function regenerateFloor(floor) {
+  const rand = rngSeed(1000 + floor * 77);
+  world.solids.fill(0);
+  world.platforms.length = 0;
+  world.monsters.length = 0;
+
+  // boundaries + base
+  for (let x = 0; x < WORLD_W; x++) {
+    world.solids[idx(x, WORLD_H - 1)] = 1;
+    world.solids[idx(x, 0)] = 1;
+  }
+  for (let y = 0; y < WORLD_H; y++) {
+    world.solids[idx(0, y)] = 1;
+    world.solids[idx(WORLD_W - 1, y)] = 1;
+  }
+
+  // long structural floor with cracks/gaps by difficulty
+  let x = 1;
+  const gapChance = clamp(0.03 + floor * 0.0012, 0.03, 0.12);
+  while (x < WORLD_W - 2) {
+    const segment = 4 + Math.floor(rand() * 8);
+    const gap = rand() < gapChance ? 1 + Math.floor(rand() * 2) : 0;
+    for (let i = 0; i < segment && x + i < WORLD_W - 1; i++) {
+      world.solids[idx(x + i, FLOOR_TOP)] = 1;
+      if (rand() < 0.12) world.solids[idx(x + i, FLOOR_TOP - 4)] = 1;
+    }
+    x += segment + gap;
+  }
+
+  // elevated platforms
+  const platCount = 12 + Math.floor(floor * 0.16);
+  for (let i = 0; i < platCount; i++) {
+    const w = 3 + Math.floor(rand() * 8);
+    const px = 2 + Math.floor(rand() * (WORLD_W - w - 4));
+    const py = 5 + Math.floor(rand() * 11);
+    for (let xx = px; xx < px + w; xx++) {
+      world.solids[idx(xx, py)] = 1;
+    }
+    if (rand() < 0.32) {
+      // pillar support, themed backrooms clutter
+      const pillarX = px + Math.floor(w * 0.5);
+      for (let yy = py + 1; yy <= FLOOR_TOP; yy++) {
+        if (rand() > 0.15) world.solids[idx(pillarX, yy)] = 1;
+      }
+    }
+  }
+
+  // ensure spawn and elevator zones
+  for (let xx = 1; xx < 16; xx++) {
+    world.solids[idx(xx, FLOOR_TOP)] = 1;
+    world.solids[idx(xx, FLOOR_TOP - 1)] = 0;
+  }
+  for (let xx = WORLD_W - 20; xx < WORLD_W - 2; xx++) {
+    world.solids[idx(xx, FLOOR_TOP)] = 1;
+    world.solids[idx(xx, FLOOR_TOP - 1)] = 0;
+  }
+
+  world.chest = {
+    x: (26 + Math.floor(rand() * (WORLD_W - 72))) * TILE,
+    y: (FLOOR_TOP - 1) * TILE,
+    w: TILE,
+    h: TILE * 0.8,
+    opened: false,
+    loot: floor % 2 === 0 ? "cards" : "keys",
+  };
+
+  world.elevator = {
+    x: (WORLD_W - 8) * TILE,
+    y: (FLOOR_TOP - 3) * TILE,
+    w: TILE * 2.8,
+    h: TILE * 3,
+    pulse: 0,
+  };
+
+  // monsters: roaming, chasing, sentinel
+  const roamingCount = 2 + Math.floor(floor / 25);
+  const chasingCount = 1 + Math.floor(floor / 18);
+  const sentinelCount = 1 + Math.floor(floor / 40);
+
+  function spawnMonster(type, sx) {
+    world.monsters.push({
+      type,
+      x: sx * TILE,
+      y: (FLOOR_TOP - 1) * TILE,
+      w: TILE * 0.72,
+      h: TILE * 1.15,
+      vx: 0,
+      vy: 0,
+      dir: rand() < 0.5 ? -1 : 1,
+      speed: type === "chase" ? 110 : type === "roam" ? 80 : 0,
+      state: type === "sentinel" ? "watch" : "idle",
+      freeze: 0,
+      aggro: 0,
+      blind: 0,
+      grounded: false,
+      seen: false,
+    });
+  }
+
+  for (let i = 0; i < roamingCount; i++) spawnMonster("roam", 35 + Math.floor(rand() * (WORLD_W - 90)));
+  for (let i = 0; i < chasingCount; i++) spawnMonster("chase", 45 + Math.floor(rand() * (WORLD_W - 100)));
+  for (let i = 0; i < sentinelCount; i++) spawnMonster("sentinel", 55 + Math.floor(rand() * (WORLD_W - 110)));
+
+  buildGrainTexture();
+}
+
+function buildGrainTexture() {
+  const off = document.createElement("canvas");
+  off.width = 220;
+  off.height = 220;
+  const g = off.getContext("2d");
+  const img = g.createImageData(off.width, off.height);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = Math.random() * 255;
+    img.data[i] = n;
+    img.data[i + 1] = n * 0.65;
+    img.data[i + 2] = n * 0.25;
+    img.data[i + 3] = 18 + Math.random() * 20;
+  }
+  g.putImageData(img, 0, 0);
+  world.grain = off;
+}
+
+// ============================================================
+// INPUT + PHYSICS
+// ============================================================
+const player = {
+  x: 4 * TILE,
+  y: (FLOOR_TOP - 2) * TILE,
+  w: TILE * 0.7,
+  h: TILE * 1.2,
+  vx: 0,
+  vy: 0,
+  speed: 250,
+  accel: 1650,
+  jump: 620,
+  facing: 1,
+  grounded: false,
+  coyote: 0,
+  jumpBuffer: 0,
+  walkPhase: 0,
+  hurt: 0,
+};
+
+function rectSolid(x, y, w, h) {
+  const x0 = Math.floor(x / TILE);
+  const x1 = Math.floor((x + w - 1) / TILE);
+  const y0 = Math.floor(y / TILE);
+  const y1 = Math.floor((y + h - 1) / TILE);
+  for (let yy = y0; yy <= y1; yy++) {
+    for (let xx = x0; xx <= x1; xx++) {
+      if (isSolidTile(xx, yy)) return true;
     }
   }
   return false;
 }
 
-/* ================= WORLD DRAW ================= */
-function drawMap(){
-  for(let y=0;y<MAP.length;y++){
-    for(let x=0;x<MAP[y].length;x++){
-      if(MAP[y][x]==="1"){
-        ctx.fillStyle="#121212";
-        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
-        ctx.strokeStyle="#1f1f1f";
-        ctx.strokeRect(x*TILE,y*TILE,TILE,TILE);
+function moveEntity(ent, dt) {
+  ent.x += ent.vx * dt;
+  if (rectSolid(ent.x, ent.y, ent.w, ent.h)) {
+    const dir = Math.sign(ent.vx);
+    while (!rectSolid(ent.x - dir, ent.y, ent.w, ent.h)) ent.x -= dir;
+    ent.vx = 0;
+  }
+
+  ent.y += ent.vy * dt;
+  ent.grounded = false;
+  if (rectSolid(ent.x, ent.y, ent.w, ent.h)) {
+    const dir = Math.sign(ent.vy);
+    while (!rectSolid(ent.x, ent.y - dir, ent.w, ent.h)) ent.y -= dir;
+    if (ent.vy > 0) ent.grounded = true;
+    ent.vy = 0;
+  }
+}
+
+// ============================================================
+// NPCs
+// ============================================================
+function updateMonsters(dt) {
+  for (const m of world.monsters) {
+    m.freeze = Math.max(0, m.freeze - dt);
+    m.vy = Math.min(MAX_FALL, m.vy + GRAVITY * dt * 0.8);
+    const px = player.x - m.x;
+    const py = player.y - m.y;
+    const dist = Math.hypot(px, py);
+    const canSee = dist < (m.type === "sentinel" ? 240 : 320) && Math.abs(py) < 90;
+
+    if (canSee) {
+      m.seen = true;
+      m.aggro = clamp(m.aggro + dt * 1.8, 0, 1);
+    } else {
+      m.aggro = clamp(m.aggro - dt * 0.8, 0, 1);
+    }
+
+    if (m.type === "sentinel") {
+      if (dist < 210) {
+        m.vx = Math.sign(px) * 40 * m.aggro;
+      } else {
+        m.vx = 0;
       }
+    } else if (m.type === "chase" && m.aggro > 0.08) {
+      m.dir = px < 0 ? -1 : 1;
+      m.vx = m.dir * m.speed * (0.4 + m.aggro * 0.9);
+    } else {
+      if (Math.random() < 0.005) m.dir *= -1;
+      m.vx = m.dir * m.speed * 0.7;
+    }
+
+    // edge detection and path adjustment
+    const aheadX = m.x + (m.dir > 0 ? m.w + 4 : -4);
+    const footY = m.y + m.h + 2;
+    const wallAhead = rectSolid(aheadX, m.y + 4, 2, m.h - 6);
+    const noGroundAhead = !rectSolid(aheadX, footY, 2, 2);
+    if ((wallAhead || noGroundAhead) && m.grounded) {
+      if (m.type === "chase" && m.aggro > 0.35 && wallAhead) {
+        m.vy = -430; // hop obstacle
+      } else {
+        m.dir *= -1;
+        m.vx *= -0.5;
+        m.freeze = 0.08;
+      }
+    }
+    if (m.freeze > 0) m.vx = 0;
+
+    moveEntity(m, dt);
+
+    const overlap =
+      player.x < m.x + m.w && player.x + player.w > m.x &&
+      player.y < m.y + m.h && player.y + player.h > m.y;
+    if (overlap && game.state === "play") {
+      game.state = "dead";
+      game.deathTimer = 0;
+      game.fadeTarget = 1;
+      game.shake = 14;
+      Audio.burst(80, 0.15, "sawtooth", 0.09);
     }
   }
 }
 
-/* ================= MAIN LOOP ================= */
-let last = performance.now();
-function loop(t){
-  const dt = Math.min((t-last)/1000,0.033);
-  last = t;
+// ============================================================
+// SOUND (optional minimal synth)
+// ============================================================
+const Audio = {
+  ctx: null,
+  gain: null,
+  ensure() {
+    if (this.ctx) return;
+    const A = window.AudioContext || window.webkitAudioContext;
+    if (!A) return;
+    this.ctx = new A();
+    this.gain = this.ctx.createGain();
+    this.gain.gain.value = 0.1;
+    this.gain.connect(this.ctx.destination);
+  },
+  burst(freq, len, wave = "sine", vol = 0.05) {
+    if (!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = wave;
+    o.frequency.value = freq;
+    g.gain.value = vol;
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + len);
+    o.connect(g).connect(this.gain);
+    o.start();
+    o.stop(this.ctx.currentTime + len);
+  }
+};
 
+// ============================================================
+// GAME FLOW
+// ============================================================
+function tryInteractions() {
+  game.prompt = "";
+  const chest = world.chest;
+  const elev = world.elevator;
+
+  const dc = Math.hypot((player.x + player.w * 0.5) - (chest.x + chest.w * 0.5), (player.y + player.h * 0.5) - (chest.y + chest.h * 0.5));
+  if (dc < 70 && !chest.opened && game.state === "play") {
+    game.prompt = "[E] Open Drawer";
+    if (takePress("e")) {
+      chest.opened = true;
+      if (chest.loot === "keys") inventory.keys++;
+      if (chest.loot === "cards") inventory.cards++;
+      game.state = "inventory";
+      game.transitionTimer = 0;
+      Audio.burst(420, 0.08, "triangle", 0.06);
+    }
+    return;
+  }
+
+  const de = Math.hypot((player.x + player.w * 0.5) - (elev.x + elev.w * 0.5), (player.y + player.h * 0.5) - (elev.y + elev.h * 0.5));
+  const usable = inventory.keys > 0 || inventory.cards > 0;
+  if (de < 90 && game.state === "play") {
+    game.prompt = usable ? "[E] Use Elevator" : "Elevator Locked (Need key/card)";
+    if (takePress("e") && usable) {
+      if (inventory.keys > 0) inventory.keys--;
+      else if (inventory.cards > 0) inventory.cards--;
+      game.shake = 20;
+      game.flash = 0.8;
+      game.fadeTarget = 1;
+      game.state = "inventory";
+      game.transitionTimer = 0.9;
+      Audio.burst(130, 0.2, "square", 0.06);
+      Audio.burst(88, 0.3, "sawtooth", 0.06);
+    }
+  }
+}
+
+function nextFloor() {
+  game.floor++;
+  if (game.floor > game.maxFloor) {
+    game.floor = game.maxFloor;
+    game.state = "ending";
+    game.fade = 0;
+    return;
+  }
+  regenerateFloor(game.floor);
+  player.x = 4 * TILE;
+  player.y = (FLOOR_TOP - 2) * TILE;
+  player.vx = 0;
+  player.vy = 0;
+  game.fade = 1;
+  game.fadeTarget = 0;
+  game.state = "play";
+}
+
+function update(dt) {
+  game.time += dt;
+  game.flicker = Math.max(0, game.flicker - dt);
+  if (Math.random() < 0.008) {
+    game.flicker = 0.08 + Math.random() * 0.15;
+    game.flash = 0.4;
+    Audio.burst(700, 0.04, "square", 0.02);
+  }
+
+  if (game.state === "dead") {
+    game.deathTimer += dt;
+    game.fade = smoothDamp(game.fade, 1, 3.2, dt);
+    if (game.deathTimer > 1.6) {
+      game.floor = Math.max(1, game.floor - 1);
+      regenerateFloor(game.floor);
+      player.x = 4 * TILE;
+      player.y = (FLOOR_TOP - 2) * TILE;
+      player.vx = player.vy = 0;
+      game.state = "play";
+      game.fade = 1;
+      game.fadeTarget = 0;
+    }
+    return;
+  }
+
+  if (game.state === "ending") {
+    game.fade = smoothDamp(game.fade, 0.05, 1.2, dt);
+    return;
+  }
+
+  if (game.state === "inventory") {
+    game.transitionTimer -= dt;
+    game.fade = smoothDamp(game.fade, game.fadeTarget, 4.5, dt);
+    if (takePress("e") && world.chest.opened && game.transitionTimer < 0.3) {
+      game.state = "play";
+      game.fadeTarget = 0;
+    }
+    if (game.transitionTimer <= 0 && game.fade > 0.96 && game.fadeTarget > 0.8) {
+      nextFloor();
+    }
+    return;
+  }
+
+  // movement input
+  let move = 0;
+  if (Keys["a"]) move -= 1;
+  if (Keys["d"]) move += 1;
+
+  const targetVx = move * player.speed;
+  player.vx = smoothDamp(player.vx, targetVx, player.accel / player.speed, dt);
+  if (Math.abs(move) > 0) player.facing = move;
+
+  player.jumpBuffer = takePress(" ") ? 0.12 : Math.max(0, player.jumpBuffer - dt);
+  player.coyote = player.grounded ? 0.08 : Math.max(0, player.coyote - dt);
+
+  if (player.jumpBuffer > 0 && player.coyote > 0) {
+    player.vy = -player.jump;
+    player.grounded = false;
+    player.jumpBuffer = 0;
+    player.coyote = 0;
+    Audio.burst(240, 0.05, "triangle", 0.04);
+  }
+
+  player.vy = Math.min(MAX_FALL, player.vy + GRAVITY * dt);
+  const beforeGround = player.grounded;
+  moveEntity(player, dt);
+  if (!beforeGround && player.grounded && player.vy === 0) Audio.burst(90, 0.05, "sine", 0.04);
+
+  player.walkPhase += dt * (2 + Math.abs(player.vx) * 0.02);
+
+  tryInteractions();
+  updateMonsters(dt);
+
+  camera.tx = player.x + player.w * 0.5 - innerWidth * 0.5;
+  camera.ty = player.y + player.h * 0.5 - innerHeight * 0.56;
+  camera.x = smoothDamp(camera.x, clamp(camera.tx, 0, WORLD_W * TILE - innerWidth), 5.5, dt);
+  camera.y = smoothDamp(camera.y, clamp(camera.ty, 0, WORLD_H * TILE - innerHeight), 5.5, dt);
+
+  game.shake = Math.max(0, game.shake - dt * 26);
+  game.fade = smoothDamp(game.fade, game.fadeTarget, 4.5, dt);
+  game.flash = Math.max(0, game.flash - dt * 1.6);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function drawWorld() {
+  const sx = Math.floor(camera.x / TILE) - 2;
+  const ex = Math.ceil((camera.x + innerWidth) / TILE) + 2;
+  const sy = Math.floor(camera.y / TILE) - 2;
+  const ey = Math.ceil((camera.y + innerHeight) / TILE) + 2;
+
+  const bg = ctx.createLinearGradient(0, 0, 0, innerHeight);
+  bg.addColorStop(0, "#090707");
+  bg.addColorStop(0.6, "#0f0c0b");
+  bg.addColorStop(1, "#1b120e");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+
+  ctx.save();
+  const shakeX = (Math.random() - 0.5) * game.shake;
+  const shakeY = (Math.random() - 0.5) * game.shake;
+  ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
+
+  for (let y = sy; y <= ey; y++) {
+    for (let x = sx; x <= ex; x++) {
+      if (!isSolidTile(x, y)) continue;
+      const px = x * TILE;
+      const py = y * TILE;
+
+      const g = ctx.createLinearGradient(px, py, px, py + TILE);
+      g.addColorStop(0, "#221611");
+      g.addColorStop(0.55, "#19100d");
+      g.addColorStop(1, "#0d0b0a");
+      ctx.fillStyle = g;
+      ctx.fillRect(px, py, TILE, TILE);
+
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.fillRect(px, py, TILE, 3);
+      ctx.fillStyle = "rgba(255,146,64,0.06)";
+      ctx.fillRect(px + 1, py + 1, TILE - 2, 2);
+      ctx.strokeStyle = "rgba(32,20,12,0.9)";
+      ctx.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
+
+      if (Math.random() < 0.06) {
+        ctx.fillStyle = "rgba(255,155,95,0.05)";
+        ctx.fillRect(px + Math.random() * TILE, py + Math.random() * TILE, 1, 1);
+      }
+    }
+  }
+
+  drawChest(world.chest);
+  drawElevator(world.elevator);
+  for (const m of world.monsters) drawMonster(m);
+  drawPlayer();
+
+  ctx.restore();
+
+  // grain overlay
+  if (world.grain) {
+    ctx.globalAlpha = 0.12;
+    const ox = (game.time * 20) % 220;
+    for (let y = -220; y < innerHeight + 220; y += 220) {
+      for (let x = -220; x < innerWidth + 220; x += 220) {
+        ctx.drawImage(world.grain, x + ox, y);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // pseudo-light map + flicker
+  const px = player.x - camera.x + player.w * 0.5;
+  const py = player.y - camera.y + player.h * 0.5;
+  const light = ctx.createRadialGradient(px, py, 80, px, py, 450 + Math.sin(game.time * 2.5) * 20);
+  const dim = clamp(0.75 + game.flicker * 1.2, 0.65, 0.9);
+  light.addColorStop(0, `rgba(0,0,0,${0.1 + game.flicker * 0.4})`);
+  light.addColorStop(0.45, `rgba(0,0,0,${dim})`);
+  light.addColorStop(1, "rgba(0,0,0,0.95)");
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+
+  // vignette
+  const vig = ctx.createRadialGradient(innerWidth * 0.5, innerHeight * 0.5, 150, innerWidth * 0.5, innerHeight * 0.5, Math.max(innerWidth, innerHeight) * 0.8);
+  vig.addColorStop(0.2, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(0,0,0,0.78)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+
+  // occasional flash burst
+  if (game.flash > 0.01) {
+    ctx.fillStyle = `rgba(255,170,120,${game.flash * 0.25})`;
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+  }
+}
+
+function drawPlayer() {
+  const x = player.x;
+  const y = player.y;
+  const bob = player.grounded ? Math.sin(player.walkPhase * 8) * 1.4 : -2;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+
+  // ambient shadow
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(player.w * 0.5, player.h + 8, player.w * 0.5, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body base
+  const body = ctx.createLinearGradient(0, 0, 0, player.h);
+  body.addColorStop(0, "#191919");
+  body.addColorStop(1, "#080808");
+  ctx.fillStyle = body;
+  ctx.fillRect(3, 3, player.w - 6, player.h - 3);
+
+  // highlight
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  ctx.fillRect(6, 6, player.w * 0.25, player.h * 0.7);
+
+  // head
+  ctx.fillStyle = "#0c0c0c";
+  ctx.fillRect(4, 0, player.w - 8, 12);
+
+  // eyes
+  ctx.fillStyle = "rgba(230,230,230,0.95)";
+  const eyeOffset = player.facing > 0 ? 0 : -1;
+  ctx.fillRect(10 + eyeOffset, 5, 3, 3);
+  ctx.fillRect(player.w - 13 + eyeOffset, 5, 3, 3);
+
+  // legs animation
+  const step = Math.sin(player.walkPhase * 14) * (player.grounded ? 2.5 : 0.8);
+  ctx.fillStyle = "#070707";
+  ctx.fillRect(8, player.h - 11, 6, 10 + step);
+  ctx.fillRect(player.w - 14, player.h - 11, 6, 10 - step);
+
+  ctx.restore();
+}
+
+function drawMonster(m) {
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  const stretch = m.type === "chase" ? 1.05 : 1;
+  ctx.scale(1, stretch);
+
+  ctx.fillStyle = "#030303";
+  ctx.fillRect(0, 2, m.w, m.h - 2);
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillRect(m.w * 0.26, 10, 3, 3);
+  ctx.fillRect(m.w * 0.65, 10, 3, 3);
+
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(m.w * 0.28, 11, 5, 0, Math.PI * 2);
+  ctx.arc(m.w * 0.68, 11, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawElevator(e) {
+  e.pulse += 0.08;
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  const glow = 0.08 + Math.sin(e.pulse) * 0.04;
+
+  ctx.fillStyle = "#151414";
+  ctx.fillRect(0, 0, e.w, e.h);
+  ctx.strokeStyle = "#3d2a1f";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, e.w, e.h);
+
+  ctx.fillStyle = "#282222";
+  ctx.fillRect(4, 4, e.w * 0.44, e.h - 8);
+  ctx.fillRect(e.w * 0.52, 4, e.w * 0.44, e.h - 8);
+
+  ctx.fillStyle = "rgba(255,140,90,0.3)";
+  ctx.fillRect(6, 6, e.w * 0.4, 4);
+  ctx.fillRect(e.w * 0.54, 6, e.w * 0.4, 4);
+
+  ctx.fillStyle = "#0e0e0e";
+  ctx.fillRect(e.w + 6, 8, 11, 26);
+  ctx.fillStyle = `rgba(255,180,120,${0.35 + glow})`;
+  ctx.fillRect(e.w + 9, 12, 5, 5);
+  ctx.fillRect(e.w + 9, 21, 5, 5);
+
+  ctx.restore();
+}
+
+function drawChest(c) {
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.fillStyle = c.opened ? "#1a1a1a" : "#201714";
+  ctx.fillRect(0, 0, c.w, c.h);
+  ctx.strokeStyle = "#423027";
+  ctx.strokeRect(0.5, 0.5, c.w - 1, c.h - 1);
+  ctx.fillStyle = "rgba(255,152,94,0.25)";
+  ctx.fillRect(2, 2, c.w - 4, 4);
+  ctx.fillStyle = "#4f3b2b";
+  ctx.fillRect(c.w * 0.46, c.h * 0.45, 4, 4);
+  ctx.restore();
+}
+
+// ============================================================
+// UI + EFFECTS
+// ============================================================
+function drawHUD() {
+  ctx.fillStyle = "rgba(0,0,0,0.42)";
+  ctx.fillRect(14, 12, 270, 82);
+  ctx.strokeStyle = "rgba(255,145,95,0.2)";
+  ctx.strokeRect(14.5, 12.5, 269, 81);
+
+  ctx.fillStyle = "#f2d8c7";
+  ctx.font = "600 15px Inter, Segoe UI, sans-serif";
+  ctx.fillText(`THE ELEVATOR`, 24, 34);
+  ctx.font = "13px Inter, Segoe UI, sans-serif";
+  ctx.fillStyle = "#c5b2a5";
+  ctx.fillText(`Floor ${game.floor} / ${game.maxFloor}`, 24, 54);
+  ctx.fillText(`Keys: ${inventory.keys}   Cards: ${inventory.cards}`, 24, 74);
+
+  if (game.prompt) {
+    const w = ctx.measureText(game.prompt).width + 24;
+    const x = innerWidth * 0.5 - w * 0.5;
+    const y = innerHeight - 56;
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(x, y, w, 32);
+    ctx.strokeStyle = "rgba(255,160,112,0.25)";
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 31);
+    ctx.fillStyle = "#efd9c8";
+    ctx.fillText(game.prompt, x + 12, y + 21);
+  }
+
+  if (game.state === "inventory") {
+    const boxW = 280, boxH = 240;
+    const bx = innerWidth * 0.5 - boxW * 0.5;
+    const by = innerHeight * 0.5 - boxH * 0.5;
+    ctx.fillStyle = "rgba(4,4,4,0.86)";
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.strokeStyle = "rgba(255,170,120,0.3)";
+    ctx.strokeRect(bx + 0.5, by + 0.5, boxW - 1, boxH - 1);
+    ctx.fillStyle = "#efd7c4";
+    ctx.font = "600 16px Inter, sans-serif";
+    ctx.fillText("Drawer Inventory", bx + 16, by + 28);
+
+    const slot = 56;
+    const sx0 = bx + 24;
+    const sy0 = by + 46;
+    for (let iy = 0; iy < 3; iy++) {
+      for (let ix = 0; ix < 3; ix++) {
+        const sx = sx0 + ix * (slot + 8);
+        const sy = sy0 + iy * (slot + 8);
+        ctx.fillStyle = "rgba(18,18,18,0.95)";
+        ctx.fillRect(sx, sy, slot, slot);
+        ctx.strokeStyle = "rgba(255,150,90,0.16)";
+        ctx.strokeRect(sx + 0.5, sy + 0.5, slot - 1, slot - 1);
+      }
+    }
+    // item indicators
+    if (inventory.keys > 0) {
+      ctx.fillStyle = "#f2d27a";
+      ctx.fillRect(sx0 + 20, sy0 + 20, 14, 14);
+      ctx.fillRect(sx0 + 30, sy0 + 24, 18, 6);
+    }
+    if (inventory.cards > 0) {
+      ctx.fillStyle = "#7fd2ef";
+      ctx.fillRect(sx0 + slot + 8 + 14, sy0 + 16, 24, 18);
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(sx0 + slot + 8 + 18, sy0 + 21, 16, 3);
+    }
+
+    ctx.fillStyle = "#baa49a";
+    ctx.font = "13px Inter, sans-serif";
+    if (game.transitionTimer > 0.2 && game.fadeTarget > 0.8) {
+      ctx.fillText("Elevator in motion...", bx + 16, by + boxH - 22);
+    } else {
+      ctx.fillText("Press E to close", bx + 16, by + boxH - 22);
+    }
+  }
+
+  if (game.state === "dead") {
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = "#f1e4dd";
+    ctx.font = "700 44px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("YOU WERE FOUND", innerWidth * 0.5, innerHeight * 0.45);
+    ctx.font = "16px Inter, sans-serif";
+    ctx.fillStyle = "#bda89d";
+    ctx.fillText("Descending one floor...", innerWidth * 0.5, innerHeight * 0.53);
+    ctx.textAlign = "left";
+  }
+
+  if (game.state === "ending") {
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = "#f3e2d7";
+    ctx.font = "700 46px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("THE ELEVATOR", innerWidth * 0.5, innerHeight * 0.42);
+    ctx.font = "22px Inter, sans-serif";
+    ctx.fillStyle = "#c8b0a2";
+    ctx.fillText("It never went up.", innerWidth * 0.5, innerHeight * 0.5);
+    ctx.font = "13px Inter, sans-serif";
+    ctx.fillStyle = "#9a8478";
+    ctx.fillText("Refresh to descend again", innerWidth * 0.5, innerHeight * 0.58);
+    ctx.textAlign = "left";
+  }
+
+  if (game.fade > 0.01) {
+    ctx.fillStyle = `rgba(0,0,0,${clamp(game.fade, 0, 1)})`;
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+  }
+}
+
+function render() {
+  drawWorld();
+  drawHUD();
+}
+
+// ============================================================
+// LOOP
+// ============================================================
+regenerateFloor(game.floor);
+
+let last = performance.now();
+function loop(ts) {
+  const dt = Math.min(0.033, (ts - last) / 1000);
+  last = ts;
   update(dt);
   render();
-
   requestAnimationFrame(loop);
 }
-
-function update(dt){
-  Game.time += dt;
-  Player.update(dt);
-  Camera.update(
-    Player.x + Player.w/2 - innerWidth/2,
-    Player.y + Player.h/2 - innerHeight/2
-  );
-}
-
-function render(){
-  ctx.fillStyle="#080808";
-  ctx.fillRect(0,0,cv.width,cv.height);
-
-  ctx.save();
-  ctx.translate(-Camera.x, -Camera.y);
-
-  drawMap();
-  Player.draw();
-
-  ctx.restore();
-
-  /* Vignette */
-  const g = ctx.createRadialGradient(
-    cv.width/2,cv.height/2,120,
-    cv.width/2,cv.height/2,
-    Math.max(cv.width,cv.height)*0.75
-  );
-  g.addColorStop(0,"rgba(0,0,0,0)");
-  g.addColorStop(1,"rgba(0,0,0,.9)");
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,cv.width,cv.height);
-}
-
 requestAnimationFrame(loop);
-
-/* =========================================================
-   BÖLÜM 2: ASANSÖR + SANDIK + ENVANTER
-   ========================================================= */
-
-/* ================= INVENTORY ================= */
-const Inventory = {
-  key:false,
-  card:false,
-  text(){
-    let t=[];
-    if(this.key) t.push("Anahtar");
-    if(this.card) t.push("Kart");
-    return t.length?t.join(", "):"-";
-  }
-};
-
-/* ================= CHEST ================= */
-const Chest = {
-  x: TILE*6,
-  y: TILE*9,
-  w: 32,
-  h: 24,
-  opened:false,
-  loot:null,
-  init(){
-    this.loot = (Game.floor % 2 === 0) ? "card" : "key";
-  },
-  tryOpen(){
-    if(this.opened) return;
-    this.opened = true;
-    Inventory[this.loot] = true;
-  },
-  draw(){
-    if(this.opened) return;
-    ctx.fillStyle="#2a2a2a";
-    ctx.fillRect(this.x,this.y,this.w,this.h);
-  }
-};
-Chest.init();
-
-/* ================= ELEVATOR ================= */
-const Elevator = {
-  x: (MAP[0].length-3)*TILE,
-  y: (MAP.length-3)*TILE,
-  w: 48,
-  h: 72,
-  active:false,
-  canUse(){
-    return Game.floor % 2 === 0 ? Inventory.card : Inventory.key;
-  },
-  update(){
-    const dx = (Player.x+Player.w/2)-(this.x+this.w/2);
-    const dy = (Player.y+Player.h/2)-(this.y+this.h/2);
-    const near = Math.hypot(dx,dy)<60;
-
-    if(near){
-      hint.style.display="block";
-      hint.textContent = this.canUse() ? "[E] ASANSÖR" : "[KİLİTLİ]";
-      if(KEY["e"] && this.canUse()){
-        Game.state="ELEVATOR";
-      }
-    }else{
-      hint.style.display="none";
-    }
-  },
-  draw(){
-    ctx.fillStyle="#3a3a3a";
-    ctx.fillRect(this.x,this.y,this.w,this.h);
-    ctx.fillStyle="#777";
-    ctx.fillRect(this.x+6,this.y+6,14,60);
-    ctx.fillRect(this.x+28,this.y+6,14,60);
-  }
-};
-
-/* ================= STATE UPDATE PATCH ================= */
-/* BUNU update() FONKSİYONUNUN EN ALTINA EKLİYORUZ */
-const _update = update;
-update = function(dt){
-  _update(dt);
-
-  if(Game.state==="PLAY"){
-    Elevator.update();
-
-    const cx = Player.x - Chest.x;
-    const cy = Player.y - Chest.y;
-    if(Math.hypot(cx,cy)<50 && !Chest.opened){
-      hint.style.display="block";
-      hint.textContent="[E] AÇ";
-      if(KEY["e"]) Chest.tryOpen();
-    }
-  }
-
-  if(Game.state==="ELEVATOR"){
-    Game.shake += dt*10;
-    Inventory.key=false;
-    Inventory.card=false;
-    Game.floor++;
-    Player.x=TILE*2;
-    Player.y=TILE*2;
-    Chest.opened=false;
-    Chest.init();
-    Game.state="PLAY";
-  }
-
-  hud.innerHTML = `KAT: ${Game.floor} / 100<br>ENVANTER: ${Inventory.text()}`;
-};
-
-/* ================= DRAW PATCH ================= */
-const _render = render;
-render = function(){
-  _render();
-  ctx.save();
-  ctx.translate(-Camera.x,-Camera.y);
-  Chest.draw();
-  Elevator.draw();
-  ctx.restore();
-};
-
-/* =========================================================
-   BÖLÜM 3: YARATIK AI + ATMOSFER
-   ========================================================= */
-
-/* ================= MONSTER ================= */
-const Monster = {
-  x: TILE*12,
-  y: TILE*9,
-  w: 28,
-  h: 36,
-  speed: 120,
-  active: true,
-  update(dt){
-    if(!this.active || Game.state!=="PLAY") return;
-
-    // basit takip (collision’lı)
-    const tx = Player.x - this.x;
-    const ty = Player.y - this.y;
-    const d  = Math.hypot(tx,ty) || 1;
-
-    let vx = (tx/d) * this.speed;
-    let vy = (ty/d) * this.speed;
-
-    // X
-    this.x += vx * dt;
-    if(collide(this.x,this.y,this.w,this.h)) this.x -= vx * dt;
-
-    // Y
-    this.y += vy * dt;
-    if(collide(this.x,this.y,this.w,this.h)) this.y -= vy * dt;
-
-    // yakalama
-    if(Math.hypot(Player.x-this.x, Player.y-this.y) < 18){
-      Game.state = "DEAD";
-      this.active = false;
-      showDead();
-    }
-  },
-  draw(){
-    if(!this.active) return;
-    ctx.fillStyle="#050505";
-    ctx.fillRect(this.x,this.y,this.w,this.h);
-    ctx.fillStyle="#fff";
-    ctx.fillRect(this.x+6,this.y+10,4,4);
-    ctx.fillRect(this.x+18,this.y+10,4,4);
-  },
-  reset(){
-    this.x = TILE*12;
-    this.y = TILE*9;
-    this.active = true;
-  }
-};
-
-/* ================= DEATH OVERLAY ================= */
-let deadShown = false;
-function showDead(){
-  deadShown = true;
-  Game.shake = 1.2;
-  const d = document.createElement("div");
-  d.id = "deadOverlay";
-  d.style.position="fixed";
-  d.style.inset="0";
-  d.style.background="#000";
-  d.style.display="grid";
-  d.style.placeItems="center";
-  d.style.color="#eee";
-  d.style.letterSpacing="3px";
-  d.style.zIndex="10";
-  d.textContent="YAKALANDIN";
-  document.body.appendChild(d);
-}
-
-/* ================= ATMOSPHERE ================= */
-let flickerT = 0;
-
-/* ================= UPDATE PATCH ================= */
-const __update = update;
-update = function(dt){
-  __update(dt);
-
-  // monster
-  Monster.update(dt);
-
-  // flicker
-  flickerT += dt * 2.5;
-  if(Math.random() < 0.02){
-    Game.shake = 0.4;
-  }
-
-  // death freeze
-  if(Game.state==="DEAD"){
-    Game.shake *= 0.95;
-  }
-};
-
-/* ================= DRAW PATCH ================= */
-const __render2 = render;
-render = function(){
-  __render2();
-
-  ctx.save();
-  // camera shake
-  const sx = (Math.random()-0.5) * Game.shake * 6;
-  const sy = (Math.random()-0.5) * Game.shake * 6;
-  ctx.translate(-Camera.x+sx, -Camera.y+sy);
-
-  // monster
-  Monster.draw();
-
-  ctx.restore();
-
-  // darkness + flicker
-  const a = 0.78 + Math.sin(flickerT)*0.03;
-  const g = ctx.createRadialGradient(
-    cv.width/2,cv.height/2,140,
-    cv.width/2,cv.height/2,
-    Math.max(cv.width,cv.height)*0.8
-  );
-  g.addColorStop(0,`rgba(0,0,0,${Math.max(0,a-0.25)})`);
-  g.addColorStop(1,`rgba(0,0,0,${a})`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,cv.width,cv.height);
-};
-/* =========================================================
-   BÖLÜM 4: 100 KAT + ASANSÖR DÜŞÜŞÜ + KÖTÜ SON (FINAL)
-   ========================================================= */
-
-/* ================= ENDING OVERLAY ================= */
-function showEnding(){
-  Game.state = "END";
-  const e = document.createElement("div");
-  e.id = "endingOverlay";
-  e.style.position = "fixed";
-  e.style.inset = "0";
-  e.style.background = "#000";
-  e.style.display = "grid";
-  e.style.placeItems = "center";
-  e.style.color = "#eee";
-  e.style.letterSpacing = "3px";
-  e.style.zIndex = "20";
-  e.style.textAlign = "center";
-  e.innerHTML = `
-    <div>
-      <p style="font-size:28px;margin-bottom:12px">
-        “Hiçbir zaman yukarı çıkmıyordun.”
-      </p>
-      <p style="font-size:14px;color:#999">
-        THE ELEVATOR
-      </p>
-    </div>
-  `;
-  document.body.appendChild(e);
-}
-
-/* ================= ELEVATOR OVERRIDE ================= */
-/* 100. katta sallanıp düşme */
-const _elevatorUpdate = Elevator.update;
-Elevator.update = function(){
-  if(Game.state!=="PLAY") return;
-
-  const dx = (Player.x+Player.w/2)-(this.x+this.w/2);
-  const dy = (Player.y+Player.h/2)-(this.y+this.h/2);
-  const near = Math.hypot(dx,dy)<60;
-
-  if(near){
-    hint.style.display="block";
-    hint.textContent = "[E] ASANSÖR";
-
-    if(KEY["e"]){
-      if(Game.floor >= 100){
-        // FINAL
-        Game.state = "ELEVATOR";
-        Game.shake = 2.5;
-        setTimeout(showEnding, 2200);
-      }else{
-        Game.state = "ELEVATOR";
-      }
-    }
-  }else{
-    hint.style.display="none";
-  }
-};
-
-/* ================= UPDATE PATCH (FINAL) ================= */
-const ___updateFinal = update;
-update = function(dt){
-  ___updateFinal(dt);
-
-  // Asansör aktifken sallanma
-  if(Game.state==="ELEVATOR"){
-    Game.shake += dt * 6;
-
-    // Kat geçişi (100’den önce)
-    if(Game.floor < 100){
-      Game.floor++;
-      Inventory.key = false;
-      Inventory.card = false;
-
-      // resetler
-      Player.x = TILE*2;
-      Player.y = TILE*2;
-      Monster.reset();
-      Chest.opened = false;
-      Chest.init();
-
-      Game.state = "PLAY";
-    }
-  }
-};
-
-/* ================= DRAW PATCH (FINAL) ================= */
-const ___renderFinal = render;
-render = function(){
-  ___renderFinal();
-
-  if(Game.state==="END"){
-    // tamamen karart
-    ctx.fillStyle = "rgba(0,0,0,0.9)";
-    ctx.fillRect(0,0,cv.width,cv.height);
-  }
-};
-
-
 </script>
 </body>
 </html>
-
