@@ -3,281 +3,218 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Idle Market Tycoon</title>
+  <title>Idle Supermarket Tycoon</title>
   <style>
     :root{
-      --sky:#8fd3ff;
-      --sky2:#dff4ff;
-      --road:#5b6472;
-      --grass:#74c365;
-      --panel:#0f1720;
-      --panel2:#172432;
+      --bg1:#dff2ff;
+      --bg2:#bfe3ff;
+      --bg3:#95cfff;
+      --panel:#0d1827;
+      --panel2:#17273d;
+      --panelBorder:rgba(255,255,255,.09);
+      --gold:#ffcf54;
+      --green:#20b53a;
+      --green2:#14972e;
+      --blue:#2d78ff;
+      --blue2:#1a56c4;
+      --orange:#ff9a33;
+      --orange2:#e46f10;
+      --shadow:0 18px 35px rgba(0,0,0,.22);
       --text:#f4fbff;
-      --gold:#ffd45c;
-      --green:#71e36f;
-      --red:#ff7a7a;
-      --shadow:0 14px 30px rgba(0,0,0,.28);
+      --muted:rgba(255,255,255,.72);
+      --road:#666f80;
+      --roadLine:#f1e28d;
+      --grass:#7dc768;
+      --grass2:#6bb85b;
+      --sidewalk1:#e8edf5;
+      --sidewalk2:#d4dbe6;
+      --buildingFront:#eef6fb;
+      --buildingSide:#c5d7e4;
+      --buildingRoof:#f07f4a;
+      --glass1:#8fd9ff;
+      --glass2:#5dbbe9;
+      --cash:#22b53a;
+      --cash2:#118626;
+      --danger:#ff7b7b;
     }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,var(--bg1),var(--bg2) 45%, var(--bg3));}
+    body{user-select:none;-webkit-user-select:none;touch-action:none;color:var(--text)}
 
-    *{box-sizing:border-box;}
-    html,body{margin:0;height:100%;font-family:Inter,Arial,Helvetica,sans-serif;background:#d5eefc;overflow:hidden;}
-    body{
-      background:linear-gradient(180deg,var(--sky2),var(--sky));
-      color:var(--text);
-      user-select:none;
-      -webkit-user-select:none;
-      touch-action:manipulation;
-    }
+    #game{position:fixed;inset:0;overflow:hidden;background:
+      radial-gradient(circle at 50% -15%, rgba(255,255,255,.8), rgba(255,255,255,0) 42%),
+      linear-gradient(180deg,var(--bg1),var(--bg2) 50%, var(--bg3));}
 
-    #game{
-      position:fixed;
-      inset:0;
-      overflow:hidden;
-      background:
-        radial-gradient(circle at 50% -20%, rgba(255,255,255,.75), rgba(255,255,255,0) 40%),
-        linear-gradient(180deg, #dff5ff 0%, #b6e3ff 45%, #95d7ff 100%);
-    }
+    #world{position:absolute;inset:0;transform:translate3d(0,0,0);will-change:transform}
 
-    #world{
-      position:absolute;
-      inset:0;
-      transform-origin:0 0;
-      will-change:transform;
-    }
+    .cloud{position:absolute;width:220px;height:80px;background:rgba(255,255,255,.72);border-radius:999px;filter:blur(.2px) drop-shadow(0 12px 18px rgba(0,0,0,.06))}
+    .cloud:before,.cloud:after{content:"";position:absolute;background:inherit;border-radius:50%}
+    .cloud:before{width:90px;height:90px;left:20px;top:-35px}
+    .cloud:after{width:120px;height:120px;right:30px;top:-55px}
 
-    .cloud{
-      position:absolute;
-      width:180px;height:70px;
-      background:rgba(255,255,255,.85);
-      border-radius:50px;
-      filter:drop-shadow(0 10px 14px rgba(0,0,0,.08));
-      opacity:.75;
-    }
-    .cloud::before,.cloud::after{
-      content:"";position:absolute;background:inherit;border-radius:50%;
-    }
-    .cloud::before{width:80px;height:80px;left:20px;top:-28px;}
-    .cloud::after{width:100px;height:100px;right:24px;top:-36px;}
+    .ground{position:absolute;left:0;right:0;bottom:0;height:48%;background:linear-gradient(180deg,var(--grass),var(--grass2));border-top:4px solid rgba(255,255,255,.28)}
+    .sidewalk{position:absolute;left:0;right:0;bottom:190px;height:34px;background:repeating-linear-gradient(90deg,var(--sidewalk1) 0 90px,var(--sidewalk2) 90px 180px);border-top:3px solid rgba(255,255,255,.5);border-bottom:3px solid rgba(0,0,0,.06)}
+    .road{position:absolute;left:0;right:0;bottom:110px;height:80px;background:var(--road);box-shadow:inset 0 7px 0 rgba(255,255,255,.07), inset 0 -8px 0 rgba(0,0,0,.16)}
+    .road:after{content:"";position:absolute;left:0;right:0;top:36px;height:8px;background:repeating-linear-gradient(90deg, transparent 0 42px, var(--roadLine) 42px 95px)}
 
-    .ui-top{
-      position:fixed;left:12px;right:12px;top:12px;display:flex;gap:10px;z-index:50;pointer-events:none;
-    }
-    .card{
-      background:linear-gradient(180deg,var(--panel2),var(--panel));
-      border:1px solid rgba(255,255,255,.08);
-      box-shadow:var(--shadow);
-      border-radius:18px;
-      padding:12px 14px;
-      min-height:64px;
-      pointer-events:auto;
-    }
-    .money-card{flex:1.5;display:flex;align-items:center;gap:12px;min-width:0;}
-    .money-icon,.mini-icon{
-      width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:900;
-      background:linear-gradient(180deg,#ffec98,#ffbf33);color:#6f4300;box-shadow:inset 0 3px 0 rgba(255,255,255,.4);
-      font-size:22px;
-      flex:0 0 auto;
-    }
-    .stat-card{flex:1;display:flex;align-items:center;gap:10px;min-width:0;}
-    .label{font-size:12px;opacity:.7;line-height:1.1;}
-    .value{font-size:24px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .small{font-size:13px;opacity:.8;}
+    .ui-top{position:fixed;left:12px;right:12px;top:12px;display:flex;gap:10px;z-index:30}
+    .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--panelBorder);border-radius:22px;box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:12px;min-width:0}
+    .money-card{flex:1.4}
+    .stat-card{flex:1}
+    .icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(180deg,#ffe998,var(--gold));color:#684000;font-weight:1000;font-size:22px;flex:0 0 auto;box-shadow:inset 0 3px 0 rgba(255,255,255,.45)}
+    .label{font-size:12px;opacity:.74;line-height:1.1}
+    .value{font-size:24px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sub{font-size:13px;opacity:.84}
 
-    .hint.show{opacity:1;top:102px;}
+    .drag-hint{position:fixed;right:12px;top:92px;z-index:29;background:rgba(32,42,55,.8);color:#fff;padding:12px 14px;border-radius:16px;font-size:12px;font-weight:900;box-shadow:var(--shadow)}
 
-    .world-ground{
-      position:absolute;left:0;right:0;bottom:0;height:44%;
-      background:
-        linear-gradient(180deg, #80c86f 0%, #6db85d 100%);
-      border-top:4px solid rgba(255,255,255,.35);
-    }
+    #menu{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(5,10,18,.84),rgba(7,15,26,.9));backdrop-filter:blur(9px)}
+    .menu-box{width:min(560px,calc(100% - 24px));background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--panelBorder);border-radius:28px;box-shadow:0 25px 60px rgba(0,0,0,.35);padding:24px}
+    .menu-title{font-size:38px;font-weight:1000;margin:0 0 8px}
+    .menu-text{color:var(--muted);line-height:1.5;margin-bottom:16px}
+    .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .menu-stat{background:rgba(255,255,255,.06);border-radius:18px;padding:14px}
+    .menu-stat b{display:block;font-size:12px;opacity:.72;margin-bottom:6px}
+    .menu-stat span{font-size:22px;font-weight:1000}
+    .menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{border:none;border-radius:18px;padding:16px 14px;font-size:17px;font-weight:1000;color:#fff;cursor:pointer;box-shadow:var(--shadow), inset 0 3px 0 rgba(255,255,255,.18)}
+    .btn.play{background:linear-gradient(180deg,var(--green),var(--green2))}
+    .btn.upgrades{background:linear-gradient(180deg,var(--blue),var(--blue2))}
 
-    .road{
-      position:absolute;left:0;right:0;bottom:110px;height:74px;background:var(--road);
-      box-shadow:inset 0 6px 0 rgba(255,255,255,.08), inset 0 -8px 0 rgba(0,0,0,.18);
-    }
-    .road::after{
-      content:"";position:absolute;left:0;right:0;top:33px;height:8px;
-      background:repeating-linear-gradient(90deg, transparent 0 36px, #ffef96 36px 78px);
-      opacity:.9;
-    }
-    .sidewalk{
-      position:absolute;left:0;right:0;bottom:180px;height:30px;
-      background:repeating-linear-gradient(90deg,#e7edf2 0 54px,#d5dde6 54px 108px);
-      border-top:3px solid rgba(255,255,255,.55);
-      border-bottom:4px solid rgba(0,0,0,.08);
-    }
+    #upgradeFab{position:fixed;right:16px;bottom:16px;width:68px;height:68px;border:none;border-radius:50%;z-index:35;display:grid;place-items:center;box-shadow:var(--shadow), inset 0 3px 0 rgba(255,255,255,.2);background:linear-gradient(180deg,var(--green),var(--green2));color:#fff;font-size:30px;font-weight:1000;cursor:pointer}
+    #upgradePanel{position:fixed;right:12px;top:88px;bottom:96px;width:min(390px,calc(100% - 24px));z-index:50;transform:translateX(calc(100% + 24px));transition:transform .26s ease;pointer-events:none}
+    #upgradePanel.open{transform:translateX(0);pointer-events:auto}
+    .up-card{height:100%;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--panelBorder);border-radius:26px;box-shadow:var(--shadow);display:flex;flex-direction:column;padding:16px;gap:12px}
+    .up-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .up-head h2{margin:0;font-size:26px;font-weight:1000}
+    .close{width:44px;height:44px;border:none;border-radius:14px;background:linear-gradient(180deg,#324152,#202b37);color:#fff;font-size:22px;font-weight:1000;cursor:pointer}
+    .up-sub{font-size:14px;line-height:1.45;opacity:.78}
+    .up-list{display:grid;gap:10px;overflow:auto;padding-right:4px}
+    .upgrade{background:rgba(255,255,255,.05);border-radius:18px;padding:14px;border:1px solid rgba(255,255,255,.05)}
+    .upgrade h3{margin:0 0 6px;font-size:17px}
+    .upgrade p{margin:0 0 10px;font-size:13px;line-height:1.35;opacity:.76}
+    .buy{width:100%;border:none;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;font-size:15px;font-weight:1000;box-shadow:inset 0 3px 0 rgba(255,255,255,.16)}
+    .buy.green{background:linear-gradient(180deg,var(--green),var(--green2))}
+    .buy.blue{background:linear-gradient(180deg,var(--blue),var(--blue2))}
+    .buy.orange{background:linear-gradient(180deg,var(--orange),var(--orange2))}
 
-    .lot{
-      position:absolute;bottom:210px;width:250px;height:230px;border-radius:24px 24px 10px 10px;
-      background:linear-gradient(180deg,#8fcf7d,#69b55a);box-shadow:inset 0 4px 0 rgba(255,255,255,.25), var(--shadow);
-      border:3px solid rgba(255,255,255,.3);
-      overflow:visible;
-    }
-    .lot.locked{
-      background:linear-gradient(180deg,#8fd37d,#6cbc5a);
-      outline:4px dashed rgba(255,255,255,.35);
-      outline-offset:-14px;
-    }
-    .lot-title{
-      position:absolute;left:12px;top:12px;padding:8px 12px;border-radius:14px;background:rgba(9,18,25,.65);font-weight:900;font-size:16px;
-    }
-    .lot-buy{
-      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:170px;height:92px;border:none;border-radius:20px;cursor:pointer;
-      background:linear-gradient(180deg,#39be44,#24872c);color:#fff;font-weight:900;font-size:24px;
-      box-shadow:var(--shadow), inset 0 3px 0 rgba(255,255,255,.2);
-    }
-    .lot-buy span{display:block;font-size:15px;opacity:.95;margin-top:4px;}
+    #lots{position:absolute;left:0;right:0;bottom:224px;height:330px}
+    .lot{position:absolute;bottom:0;width:340px;height:270px}
 
-    .market{
-      position:absolute;left:0;right:0;bottom:0;height:100%;
-    }
-    .building-shadow{
-      position:absolute;left:20px;right:20px;bottom:16px;height:26px;border-radius:50%;
-      background:radial-gradient(circle at center, rgba(0,0,0,.35), rgba(0,0,0,0) 70%);
-      filter:blur(6px);
-    }
-    .building{
-      position:absolute;left:26px;right:26px;bottom:18px;height:170px;
-    }
-    .roof{
-      position:absolute;left:0;right:0;top:0;height:26px;border-radius:18px 18px 8px 8px;background:linear-gradient(180deg,#ff8c56,#df6031);
-      box-shadow:inset 0 3px 0 rgba(255,255,255,.25);
-    }
-    .facade{
-      position:absolute;left:10px;right:10px;top:22px;bottom:0;border-radius:14px 14px 8px 8px;
-      background:linear-gradient(180deg,#f7fbff,#d9edf8 55%, #c7dfea 100%);
-      border:3px solid rgba(27,50,68,.18);
-      overflow:hidden;
-    }
-    .sign{
-      position:absolute;left:50%;transform:translateX(-50%);top:16px;padding:8px 14px;border-radius:14px;background:#1b6ae0;
-      color:#fff;font-weight:900;letter-spacing:.5px;box-shadow:0 8px 18px rgba(27,106,224,.28);
-      text-align:center;
-    }
-    .sign small{display:block;font-size:11px;opacity:.85;font-weight:700;}
-    .windows{position:absolute;left:18px;right:18px;top:60px;height:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-    .win{background:linear-gradient(180deg,#9be7ff,#6cc4ef);border-radius:10px;box-shadow:inset 0 3px 0 rgba(255,255,255,.55);position:relative;overflow:hidden;}
-    .win::after{content:"";position:absolute;left:12px;top:0;bottom:0;width:10px;background:rgba(255,255,255,.22);transform:skewX(-18deg);}
-    .door{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:44px;height:58px;background:linear-gradient(180deg,#7b6048,#654b35);border-radius:10px 10px 0 0;}
-    .door::after{content:"";position:absolute;right:8px;top:28px;width:6px;height:6px;background:#ffd670;border-radius:50%;}
+    .buy-plot{position:absolute;left:48px;top:70px;width:240px;height:130px;border:none;border-radius:24px;background:linear-gradient(180deg,#35c245,#18932c);color:#fff;font-size:30px;font-weight:1000;cursor:pointer;box-shadow:var(--shadow), inset 0 4px 0 rgba(255,255,255,.2)}
+    .buy-plot span{display:block;font-size:16px;margin-top:8px}
+    .plot-title{position:absolute;left:20px;top:16px;background:rgba(13,24,39,.72);padding:9px 13px;border-radius:14px;font-size:16px;font-weight:1000}
+    .plot-outline{position:absolute;inset:6px;border-radius:24px;outline:4px dashed rgba(255,255,255,.32);outline-offset:-20px;background:linear-gradient(180deg,#8ad173,#70bf5e)}
 
-    .floor-indicator{
-      position:absolute;right:10px;top:14px;background:rgba(15,23,32,.85);color:#fff;padding:8px 10px;border-radius:12px;font-weight:900;font-size:12px;
-    }
+    .market-iso{position:absolute;left:0;right:0;top:0;bottom:0}
+    .shadow{position:absolute;left:52px;right:40px;bottom:10px;height:36px;background:radial-gradient(circle at center, rgba(0,0,0,.32), rgba(0,0,0,0) 72%);filter:blur(7px)}
 
-    .inside-floor{
-      position:absolute;left:24px;right:24px;bottom:14px;height:92px;border-radius:14px;background:linear-gradient(180deg,#ffe8c6,#f5d39d);
-      overflow:hidden;border:2px solid rgba(0,0,0,.08);
-    }
-    .counter{position:absolute;left:14px;right:14px;top:14px;height:20px;background:linear-gradient(180deg,#de9964,#b96c38);border-radius:10px;}
-    .shelf{position:absolute;left:16px;right:16px;bottom:12px;height:30px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
-    .shelf div{background:linear-gradient(180deg,#e2f3fa,#bedcea);border-radius:10px;position:relative;overflow:hidden;}
-    .shelf div::before{content:"";position:absolute;left:8px;right:8px;top:8px;height:10px;border-radius:8px;background:linear-gradient(90deg,#ef5f4a,#ffcb45,#59c86d);opacity:.9;}
+    .base-top{position:absolute;left:52px;top:124px;width:210px;height:95px;background:linear-gradient(180deg,#e6edf5,#d3dde8);transform:skewX(-30deg);border-radius:16px;box-shadow:0 18px 25px rgba(0,0,0,.12)}
+    .base-front{position:absolute;left:70px;top:178px;width:210px;height:52px;background:linear-gradient(180deg,#d9e3ed,#bccad7);border-radius:0 0 16px 16px}
+    .base-side{position:absolute;left:249px;top:145px;width:58px;height:86px;background:linear-gradient(180deg,#b7c7d6,#9fb1c1);transform:skewY(-31deg);border-radius:0 14px 14px 0}
 
-    .chef{
-      position:absolute;width:34px;height:64px;bottom:50px;left:54px;z-index:7;transition:left .5s linear;
-    }
-    .chef .head{position:absolute;left:7px;top:10px;width:20px;height:20px;background:#ffd8bf;border-radius:50%;z-index:2;}
-    .chef .hat{position:absolute;left:4px;top:0;width:26px;height:18px;background:#fff;border-radius:10px 10px 6px 6px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);}
-    .chef .body{position:absolute;left:4px;top:28px;width:26px;height:22px;background:#d9f0ff;border-radius:8px 8px 6px 6px;border:2px solid rgba(0,0,0,.08);}
-    .chef .leg1,.chef .leg2{position:absolute;width:6px;height:16px;background:#29465b;top:48px;border-radius:4px;animation:walk .42s ease-in-out infinite alternate;}
-    .chef .leg1{left:8px;}
-    .chef .leg2{right:8px;animation-delay:.21s;}
-    .chef .arm1,.chef .arm2{position:absolute;width:6px;height:14px;background:#ffd8bf;top:30px;border-radius:4px;animation:walk .42s ease-in-out infinite alternate;}
-    .chef .arm1{left:0;}
-    .chef .arm2{right:0;animation-delay:.21s;}
+    .building-top{position:absolute;left:78px;top:56px;width:172px;height:92px;background:linear-gradient(180deg,#ffab72,var(--buildingRoof));transform:skewX(-30deg);border-radius:16px}
+    .building-front{position:absolute;left:96px;top:109px;width:172px;height:96px;background:linear-gradient(180deg,#f7fbff,var(--buildingFront));border-radius:0 0 16px 16px;overflow:hidden}
+    .building-side{position:absolute;left:249px;top:80px;width:50px;height:125px;background:linear-gradient(180deg,#d7e4ee,var(--buildingSide));transform:skewY(-31deg);border-radius:0 14px 14px 0}
 
-    .customer{
-      position:absolute;width:30px;height:56px;bottom:187px;z-index:8;transition:transform .12s linear;
-    }
-    .customer .head{position:absolute;left:6px;top:4px;width:18px;height:18px;background:#ffd8bf;border-radius:50%;}
-    .customer .hair{position:absolute;left:5px;top:3px;width:20px;height:10px;background:#422d21;border-radius:10px 10px 4px 4px;}
-    .customer .body{position:absolute;left:4px;top:23px;width:22px;height:19px;border-radius:8px;background:var(--shirt,#4e7bf7);}
-    .customer .leg1,.customer .leg2{position:absolute;width:5px;height:14px;background:#2b3640;top:41px;border-radius:4px;animation:walk .3s ease-in-out infinite alternate;}
-    .customer .leg1{left:8px;}
-    .customer .leg2{right:8px;animation-delay:.15s;}
+    .roof-stripe{position:absolute;left:16px;right:14px;top:13px;height:10px;background:rgba(255,255,255,.22);border-radius:999px}
+    .sign-board{position:absolute;left:18px;right:18px;top:12px;height:22px;background:linear-gradient(180deg,#ff7343,#d94d23);border-radius:999px;display:grid;place-items:center;font-size:11px;font-weight:1000;letter-spacing:.4px;color:#fff;text-transform:uppercase}
+    .glass-row{position:absolute;left:14px;right:14px;top:42px;height:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .glass{background:linear-gradient(180deg,var(--glass1),var(--glass2));border-radius:8px;position:relative;overflow:hidden}
+    .glass:after{content:"";position:absolute;left:10px;top:-4px;bottom:-4px;width:10px;background:rgba(255,255,255,.28);transform:skewX(-18deg)}
+    .door{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:38px;height:44px;background:linear-gradient(180deg,#7c5d45,#65442f);border-radius:10px 10px 0 0}
+    .door:after{content:"";position:absolute;right:6px;top:20px;width:5px;height:5px;background:#ffd76a;border-radius:50%}
 
-    @keyframes walk{
-      from{transform:translateY(0) rotate(-10deg);}to{transform:translateY(1px) rotate(10deg);}
-    }
+    .interior{position:absolute;left:78px;top:124px;width:148px;height:58px;pointer-events:none}
+    .shelf-row{position:absolute;left:0;right:0;top:0;height:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+    .shelf-row.bottom{top:24px}
+    .shelf{background:linear-gradient(180deg,#cfe3ef,#acc5d4);border-radius:7px;position:relative;overflow:hidden}
+    .shelf:before{content:"";position:absolute;left:6px;right:6px;top:5px;height:6px;border-radius:999px;background:linear-gradient(90deg,#f85e4c,#ffc947,#4fc670,#51a8ff)}
 
-    .floating{
-      position:absolute;font-weight:900;color:#1e8a2a;text-shadow:0 2px 0 rgba(255,255,255,.7),0 8px 18px rgba(0,0,0,.18);pointer-events:none;
-      animation:floatUp .95s ease-out forwards;
-      z-index:100;
-    }
-    @keyframes floatUp{
-      0%{opacity:0;transform:translateY(8px) scale(.85);}10%{opacity:1;}100%{opacity:0;transform:translateY(-36px) scale(1.08);}
-    }
+    .chef{position:absolute;bottom:56px;width:30px;height:54px;z-index:4}
+    .chef .hat{position:absolute;left:4px;top:0;width:22px;height:16px;background:#fff;border-radius:9px 9px 6px 6px}
+    .chef .head{position:absolute;left:6px;top:9px;width:18px;height:18px;background:#ffd9c2;border-radius:50%}
+    .chef .body{position:absolute;left:5px;top:27px;width:20px;height:16px;background:#d6f0ff;border-radius:7px}
+    .chef .leg1,.chef .leg2,.chef .arm1,.chef .arm2{position:absolute;background:#2b4359;border-radius:4px;animation:walk .36s ease-in-out infinite alternate}
+    .chef .leg1,.chef .leg2{width:4px;height:12px;top:41px}
+    .chef .leg1{left:8px}.chef .leg2{right:8px;animation-delay:.18s}
+    .chef .arm1,.chef .arm2{width:4px;height:10px;top:29px;background:#ffd9c2}
+    .chef .arm1{left:2px}.chef .arm2{right:2px;animation-delay:.18s}
 
-    .mini-panel{
-      position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:space-between;gap:10px;z-index:10;
-    }
-    .mini-chip{background:rgba(15,23,32,.88);color:#fff;padding:8px 12px;border-radius:12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);}
+    .lot-badges{position:absolute;left:50px;right:40px;bottom:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+    .badge{background:rgba(13,24,39,.86);padding:8px 10px;border-radius:12px;font-size:11px;font-weight:900;box-shadow:var(--shadow)}
 
-    .top-scroll-hint{
-      position:fixed;right:16px;top:92px;z-index:45;background:rgba(15,23,32,.85);padding:10px 12px;border-radius:14px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:.9;
-    }
+    #customers{position:absolute;left:0;right:0;bottom:224px;height:150px;pointer-events:none}
+    .customer{position:absolute;bottom:6px;width:30px;height:56px;z-index:8}
+    .customer .hair{position:absolute;left:5px;top:3px;width:20px;height:10px;background:#4a3325;border-radius:10px 10px 4px 4px}
+    .customer .head{position:absolute;left:6px;top:4px;width:18px;height:18px;background:#ffd9c2;border-radius:50%}
+    .customer .body{position:absolute;left:4px;top:23px;width:22px;height:19px;border-radius:8px;background:var(--shirt,#4e7bf7)}
+    .customer .leg1,.customer .leg2{position:absolute;width:5px;height:14px;background:#243140;top:41px;border-radius:4px;animation:walk .28s ease-in-out infinite alternate}
+    .customer .leg1{left:8px}.customer .leg2{right:8px;animation-delay:.14s}
 
-    @media (max-width:860px){
-      .bottom-wrap{grid-template-columns:1fr;}
-      .manager{grid-template-columns:1fr 1fr;}
-      .actions{grid-template-columns:1fr 1fr 1fr;}
-      .action,.manager-btn{font-size:14px;padding:12px 10px;}
-      .lot{width:220px;height:210px;}
-    }
+    .float{position:absolute;font-weight:1000;color:#198e2a;pointer-events:none;text-shadow:0 2px 0 rgba(255,255,255,.7),0 10px 20px rgba(0,0,0,.16);animation:floatUp .9s ease forwards;z-index:100}
+    @keyframes floatUp{0%{opacity:0;transform:translateY(8px) scale(.88)}10%{opacity:1}100%{opacity:0;transform:translateY(-38px) scale(1.08)}}
+    @keyframes walk{from{transform:translateY(0) rotate(-10deg)}to{transform:translateY(1px) rotate(10deg)}}
 
-    @media (max-width:640px){
-      .ui-top{gap:8px;}
-      .card{padding:10px 12px;border-radius:16px;min-height:58px;}
-      .value{font-size:20px;}
-      .money-icon,.mini-icon{width:34px;height:34px;font-size:18px;}
-      .actions{grid-template-columns:1fr;}
-      .manager{grid-template-columns:1fr;}
-      .top-scroll-hint{font-size:11px;right:12px;top:86px;}
-      .lot{width:200px;height:198px;}
-      .lot-buy{width:150px;height:86px;font-size:22px;}
-      .lot-buy span{font-size:13px;}
+    .hint{position:fixed;left:50%;top:86px;transform:translateX(-50%);background:rgba(13,24,39,.88);padding:10px 14px;border-radius:14px;box-shadow:var(--shadow);z-index:70;font-size:14px;font-weight:900;opacity:0;transition:.22s ease;pointer-events:none}
+    .hint.show{opacity:1;top:98px}
+
+    @media (max-width:780px){
+      .menu-title{font-size:32px}
+      .menu-grid{grid-template-columns:1fr}
+      .menu-actions{grid-template-columns:1fr}
+      .drag-hint{font-size:11px;top:88px}
+      #upgradePanel{top:82px;bottom:92px}
+      .value{font-size:20px}
+      .icon{width:40px;height:40px;font-size:19px}
+      #lots{bottom:230px}
+      .lot{transform:scale(.92);transform-origin:left bottom}
+    }
+    @media (max-width:560px){
+      .ui-top{gap:8px}
+      .card{padding:12px 12px;border-radius:18px}
+      .label{font-size:11px}
+      .sub{font-size:12px}
+      .drag-hint{right:10px;top:86px;padding:10px 12px}
+      #upgradeFab{width:62px;height:62px;font-size:28px}
+      #upgradePanel{width:calc(100% - 20px);right:10px}
+      .lot{transform:scale(.84);transform-origin:left bottom}
     }
   </style>
 </head>
 <body>
   <div id="game">
     <div id="world">
-      <div class="cloud" style="left:120px; top:70px"></div>
-      <div class="cloud" style="left:760px; top:110px; transform:scale(.8)"></div>
-      <div class="cloud" style="left:1380px; top:50px; transform:scale(1.05)"></div>
-      <div class="world-ground"></div>
+      <div class="cloud" style="left:120px;top:80px"></div>
+      <div class="cloud" style="left:760px;top:120px;transform:scale(.8)"></div>
+      <div class="cloud" style="left:1400px;top:60px;transform:scale(1.05)"></div>
+      <div class="ground"></div>
       <div class="sidewalk"></div>
       <div class="road"></div>
       <div id="lots"></div>
       <div id="customers"></div>
-      <div id="floating"></div>
+      <div id="floats"></div>
     </div>
   </div>
 
   <div class="ui-top">
     <div class="card money-card">
-      <div class="money-icon">₺</div>
+      <div class="icon">₺</div>
       <div style="min-width:0">
         <div class="label">Kasa</div>
-        <div class="value" id="moneyText">0</div>
-        <div class="small" id="incomeText">Gelir: 0/sn</div>
+        <div class="value" id="moneyText">0 ₺</div>
+        <div class="sub" id="incomeText">Gelir: 0/sn</div>
       </div>
     </div>
-
     <div class="card stat-card">
-      <div class="mini-icon">👥</div>
+      <div class="icon">👥</div>
       <div style="min-width:0">
         <div class="label">Müşteri</div>
         <div class="value" id="customerText">0</div>
       </div>
     </div>
-
     <div class="card stat-card">
-      <div class="mini-icon">🏢</div>
+      <div class="icon">🏢</div>
       <div style="min-width:0">
         <div class="label">Kat</div>
         <div class="value" id="floorText">1</div>
@@ -285,340 +222,320 @@
     </div>
   </div>
 
-  <div class="top-scroll-hint">Kaydır: dükkan büyüdükçe sağa sola gez</div>
+  <div class="drag-hint">Kaydır: market büyüdükçe sağa sola gez</div>
   <div class="hint" id="hint"></div>
 
-    <script>
+  <div id="menu">
+    <div class="menu-box">
+      <h1 class="menu-title">Idle Supermarket Tycoon</h1>
+      <div class="menu-text">Bu sürümü referanstaki oyun görünümüne daha yakın yaptım: market artık ekranda direkt görünüyor, sahte 3D/isometric bina tarzı var, müşteriler yürüyor ve dükkan alanı büyüyor.</div>
+      <div class="menu-grid">
+        <div class="menu-stat"><b>Başlangıç Kasa</b><span>300 ₺</span></div>
+        <div class="menu-stat"><b>Başlangıç Şef</b><span>1</span></div>
+        <div class="menu-stat"><b>İlk Hedef</b><span>2. Arsa</span></div>
+      </div>
+      <div class="menu-actions">
+        <button class="btn play" id="startBtn">Oyuna Başla</button>
+        <button class="btn upgrades" id="openUpgradesFromMenu">Yükseltmeleri Aç</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="upgradeFab">↑</button>
+
+  <div id="upgradePanel">
+    <div class="up-card">
+      <div class="up-head">
+        <h2>Yükseltmeler</h2>
+        <button class="close" id="closeUpgrades">×</button>
+      </div>
+      <div class="up-sub">Altı kaplayan büyük kutuları kaldırdım. Tüm geliştirmeler bu panelde. Görüş alanı açık kaldı, market sahnesi rahat görünüyor.</div>
+      <div class="up-list">
+        <div class="upgrade">
+          <h3>Şef Kirala</h3>
+          <p>En zayıf markete yeni çalışan ekler. Daha çok şef = daha çok pasif gelir.</p>
+          <button class="buy blue" id="hireBtn">Satın Al</button>
+        </div>
+        <div class="upgrade">
+          <h3>Servis Değeri +</h3>
+          <p>Her satıştan gelen parayı artırır. Uzun oyunda çok güçlenir.</p>
+          <button class="buy orange" id="valueBtn">Yükselt</button>
+        </div>
+        <div class="upgrade">
+          <h3>Şef Hızı +</h3>
+          <p>Şeflerin servis süresi düşer. Aynı sürede daha çok satış olur.</p>
+          <button class="buy green" id="speedBtn">Hızlandır</button>
+        </div>
+        <div class="upgrade">
+          <h3>Yeni Alan Aç</h3>
+          <p>Boş arsayı yeni markete çevirir. Harita genişler ve daha çok müşteri gelir.</p>
+          <button class="buy green" id="expandBtn">Alan Aç</button>
+        </div>
+        <div class="upgrade">
+          <h3>Yeni Kat Aç</h3>
+          <p>Tüm marketleri bir üst kata geçirir. Gelir çarpanı güçlü şekilde artar.</p>
+          <button class="buy blue" id="floorBtn">Kat Aç</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
     const state = {
-      money: 200,
+      money: 300,
       totalCustomers: 0,
-      globalFloor: 1,
+      floor: 1,
+      worldWidth: 1900,
       cameraX: 0,
-      worldWidth: 1800,
       lots: [],
       customers: [],
       nextCustomerId: 1,
-      chefHireCost: 120,
-      serviceUpgradeCost: 240,
-      chefSpeedCost: 180,
-      expandCost: 350,
-      floorCost: 2500,
-      drag: {active:false,startX:0,startCam:0},
-      serviceValueBonus: 0,
-      chefSpeedBonus: 0,
       customerSpawnTimer: 0,
-      lastTime: performance.now(),
+      drag: {active:false, startX:0, startCam:0},
+      hireCost: 150,
+      valueCost: 250,
+      speedCost: 180,
+      expandCost: 420,
+      floorCost: 2600,
+      globalValueLevel: 0,
+      globalSpeedLevel: 0,
+      lastTime: performance.now()
     };
 
     const world = document.getElementById('world');
     const lotsEl = document.getElementById('lots');
     const customersEl = document.getElementById('customers');
-    const floatingEl = document.getElementById('floating');
+    const floatsEl = document.getElementById('floats');
     const hintEl = document.getElementById('hint');
+    const menu = document.getElementById('menu');
+    const upgradePanel = document.getElementById('upgradePanel');
 
-    function formatMoney(v){
-      if(v >= 1e9) return (v/1e9).toFixed(v>=1e10?0:1)+' B';
-      if(v >= 1e6) return (v/1e6).toFixed(v>=1e7?0:1)+' M';
-      if(v >= 1e3) return (v/1e3).toFixed(v>=1e4?0:1)+' K';
-      return Math.floor(v).toString();
+    function fmt(n){
+      if(n >= 1e9) return (n/1e9).toFixed(n>=1e10?0:1) + ' B';
+      if(n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1) + ' M';
+      if(n >= 1e3) return (n/1e3).toFixed(n>=1e4?0:1) + ' K';
+      return Math.floor(n).toString();
     }
-
+    function clamp(v,min,max){return Math.max(min, Math.min(max,v));}
+    function rand(min,max){return Math.random()*(max-min)+min;}
+    function randi(min,max){return Math.floor(rand(min,max+1));}
     function showHint(text){
       hintEl.textContent = text;
       hintEl.classList.add('show');
       clearTimeout(showHint.t);
-      showHint.t = setTimeout(()=>hintEl.classList.remove('show'), 1600);
+      showHint.t = setTimeout(()=>hintEl.classList.remove('show'), 1400);
     }
 
-    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-    function rand(min,max){ return Math.random()*(max-min)+min; }
-    function randi(min,max){ return Math.floor(rand(min,max+1)); }
-
-    function createLot(index){
-      const lot = {
+    function makeLot(index){
+      return {
         id:index+1,
-        x: 120 + index * 300,
-        w: 250,
-        h: 230,
-        purchased: index === 0,
-        floor: 1,
-        chefs: index === 0 ? 1 : 0,
-        chefLevel: 1,
-        serviceLevel: 1,
-        incomePerService: 1,
-        serviceTime: 1,
-        progress: 0,
+        x:120 + index*360,
+        purchased:index===0,
+        chefs:index===0?1:0,
+        income:index===0?2:1,
+        speed:index===0?1.15:1.2,
+        progress:0
       };
-      state.lots.push(lot);
-      return lot;
+    }
+    for(let i=0;i<5;i++) state.lots.push(makeLot(i));
+
+    function purchasedLots(){return state.lots.filter(l=>l.purchased)}
+    function lotCost(lot){return 360 + (lot.id-1)*260 + (lot.id-1)*(lot.id-1)*60;}
+
+    function chefHtml(left){
+      return `<div class="chef" style="left:${left}px">
+        <div class="hat"></div><div class="head"></div><div class="body"></div>
+        <div class="arm1"></div><div class="arm2"></div><div class="leg1"></div><div class="leg2"></div>
+      </div>`;
     }
 
-    for(let i=0;i<5;i++) createLot(i);
-// ensure first lot starts active and producing
-state.lots[0].purchased = true;
-state.lots[0].chefs = 1;
-state.lots[0].incomePerService = 2;
-state.lots[0].serviceTime = 1;
-
-    function buildLotHTML(lot){
-      const el = document.createElement('div');
-      el.className = 'lot' + (lot.purchased ? '' : ' locked');
-      el.style.left = lot.x + 'px';
-      el.dataset.id = lot.id;
-
-      if(!lot.purchased){
-        el.innerHTML = `
-          <div class="lot-title">Boş Arsa #${lot.id}</div>
-          <button class="lot-buy" data-buy-lot="${lot.id}">Aç
-            <span>${formatMoney(getLotBuyCost(lot))} ₺</span>
-          </button>
-        `;
-      } else {
-        el.innerHTML = getMarketHTML(lot);
-      }
-      lotsEl.appendChild(el);
-      return el;
-    }
-
-    function getMarketHTML(lot){
-      const shelves = new Array(5).fill(0).map(()=>'<div></div>').join('');
-      const chefs = new Array(lot.chefs).fill(0).map((_,i)=>chefHTML(i, lot.chefs)).join('');
+    function marketHtml(lot){
+      const chefCount = Math.min(5, lot.chefs);
+      const chefPositions = [110,132,154,176,198].slice(0,chefCount);
+      const chefs = chefPositions.map(x=>chefHtml(x)).join('');
       return `
-        <div class="market">
-          <div class="building-shadow"></div>
-          <div class="building">
-            <div class="roof"></div>
-            <div class="facade">
-              <div class="sign">MINI MARKET <small>#${lot.id}</small></div>
-              <div class="floor-indicator">Kat ${lot.floor}</div>
-              <div class="windows">
-                <div class="win"></div><div class="win"></div><div class="win"></div><div class="win"></div>
-              </div>
-              <div class="door"></div>
-              <div class="inside-floor">
-                <div class="counter"></div>
-                <div class="shelf">${shelves}</div>
-                ${chefs}
-              </div>
-            </div>
+        <div class="market-iso">
+          <div class="shadow"></div>
+          <div class="base-top"></div>
+          <div class="base-front"></div>
+          <div class="base-side"></div>
+          <div class="building-top"><div class="roof-stripe"></div></div>
+          <div class="building-side"></div>
+          <div class="building-front">
+            <div class="sign-board">Supermarket</div>
+            <div class="glass-row"><div class="glass"></div><div class="glass"></div><div class="glass"></div></div>
+            <div class="door"></div>
           </div>
-          <div class="mini-panel">
-            <div class="mini-chip">Şef: ${lot.chefs}</div>
-            <div class="mini-chip">Değer: ${formatMoney(lot.incomePerService)} ₺</div>
-            <div class="mini-chip">Hız: ${(1/lot.serviceTime).toFixed(2)}/sn</div>
+          <div class="interior">
+            <div class="shelf-row"><div class="shelf"></div><div class="shelf"></div><div class="shelf"></div><div class="shelf"></div></div>
+            <div class="shelf-row bottom"><div class="shelf"></div><div class="shelf"></div><div class="shelf"></div><div class="shelf"></div></div>
           </div>
-        </div>
-      `;
+          ${chefs}
+          <div class="lot-badges">
+            <div class="badge">Şef: ${lot.chefs}</div>
+            <div class="badge">Değer: ${fmt(lot.income)} ₺</div>
+            <div class="badge">Hız: ${(lot.chefs/lot.speed).toFixed(1)}/sn</div>
+          </div>
+        </div>`;
     }
 
-    function chefHTML(i, total){
-      const step = total <= 1 ? 0 : i/(total-1);
-      const left = 16 + step * 120;
+    function lockedHtml(lot){
       return `
-        <div class="chef" style="left:${left}px">
-          <div class="hat"></div>
-          <div class="head"></div>
-          <div class="body"></div>
-          <div class="arm1"></div>
-          <div class="arm2"></div>
-          <div class="leg1"></div>
-          <div class="leg2"></div>
-        </div>
+        <div class="plot-outline"></div>
+        <div class="plot-title">Boş Arsa #${lot.id}</div>
+        <button class="buy-plot" data-buy-lot="${lot.id}">Alan Aç<span>${fmt(lotCost(lot))} ₺</span></button>
       `;
     }
 
     function renderLots(){
-      lotsEl.innerHTML='';
-      state.lots.forEach(buildLotHTML);
+      lotsEl.innerHTML = '';
+      state.lots.forEach(lot=>{
+        const el = document.createElement('div');
+        el.className = 'lot';
+        el.style.left = lot.x + 'px';
+        el.innerHTML = lot.purchased ? marketHtml(lot) : lockedHtml(lot);
+        lotsEl.appendChild(el);
+      });
       updateWorldWidth();
     }
 
     function updateWorldWidth(){
-      const lastLot = state.lots[state.lots.length-1];
-      state.worldWidth = Math.max(window.innerWidth + 300, lastLot.x + 420);
+      const last = state.lots[state.lots.length-1];
+      state.worldWidth = Math.max(window.innerWidth + 200, last.x + 440);
       world.style.width = state.worldWidth + 'px';
       world.style.height = window.innerHeight + 'px';
       setCamera(state.cameraX);
     }
 
-    function getPurchasedLots(){ return state.lots.filter(l=>l.purchased); }
-    function getLotBuyCost(lot){ return 300 + (lot.id-1) * 240 + Math.floor((lot.id-1)*(lot.id-1)*45); }
-
     function setCamera(x){
       const maxCam = Math.max(0, state.worldWidth - window.innerWidth);
-      state.cameraX = clamp(x, 0, maxCam);
+      state.cameraX = clamp(x,0,maxCam);
       world.style.transform = `translate3d(${-state.cameraX}px,0,0)`;
     }
 
-    function updateUI(){
-      document.getElementById('moneyText').textContent = formatMoney(state.money) + ' ₺';
-      document.getElementById('customerText').textContent = state.totalCustomers;
-      document.getElementById('floorText').textContent = state.globalFloor;
-
-      const incomePerSec = getPurchasedLots().reduce((sum,lot)=>sum + (lot.chefs * lot.incomePerService / lot.serviceTime), 0);
-      document.getElementById('incomeText').textContent = 'Gelir: ' + formatMoney(incomePerSec) + '/sn';
-
-      document.getElementById('hireCost').textContent = 'Maliyet: ' + formatMoney(state.chefHireCost);
-      document.getElementById('upgradeCost').textContent = 'Maliyet: ' + formatMoney(state.serviceUpgradeCost);
-      document.getElementById('speedCost').textContent = 'Maliyet: ' + formatMoney(state.chefSpeedCost);
-      document.getElementById('expandCost').textContent = 'Maliyet: ' + formatMoney(state.expandCost);
-      document.getElementById('floorCost').textContent = 'Maliyet: ' + formatMoney(state.floorCost);
-    }
-
-    function moneyFly(x,y,text,color='#1e8a2a'){
+    function floatText(x,y,text,color='#1c972f'){
       const el = document.createElement('div');
-      el.className='floating';
-      el.textContent=text;
-      el.style.left=x+'px';
-      el.style.top=y+'px';
-      el.style.color=color;
-      floatingEl.appendChild(el);
-      setTimeout(()=>el.remove(), 950);
+      el.className = 'float';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.color = color;
+      el.textContent = text;
+      floatsEl.appendChild(el);
+      setTimeout(()=>el.remove(),900);
     }
 
-    function buyLot(lotId){
-      const lot = state.lots.find(l=>l.id===lotId);
+    function incomePerSec(){
+      return purchasedLots().reduce((sum,lot)=>sum + (lot.chefs * lot.income / lot.speed),0);
+    }
+
+    function updateUI(){
+      document.getElementById('moneyText').textContent = fmt(state.money) + ' ₺';
+      document.getElementById('incomeText').textContent = 'Gelir: ' + fmt(incomePerSec()) + '/sn';
+      document.getElementById('customerText').textContent = state.totalCustomers;
+      document.getElementById('floorText').textContent = state.floor;
+      document.getElementById('hireBtn').textContent = 'Satın Al (' + fmt(state.hireCost) + ' ₺)';
+      document.getElementById('valueBtn').textContent = 'Yükselt (' + fmt(state.valueCost) + ' ₺)';
+      document.getElementById('speedBtn').textContent = 'Hızlandır (' + fmt(state.speedCost) + ' ₺)';
+      document.getElementById('expandBtn').textContent = 'Alan Aç (' + fmt(state.expandCost) + ' ₺)';
+      document.getElementById('floorBtn').textContent = 'Kat Aç (' + fmt(state.floorCost) + ' ₺)';
+    }
+
+    function buyLot(id){
+      const lot = state.lots.find(l=>l.id===id);
       if(!lot || lot.purchased) return;
-      const cost = getLotBuyCost(lot);
+      const cost = lotCost(lot);
       if(state.money < cost){ showHint('Yetersiz para'); return; }
       state.money -= cost;
       lot.purchased = true;
       lot.chefs = 1;
-      lot.floor = state.globalFloor;
-      lot.serviceLevel = 1 + state.serviceValueBonus;
-      lot.incomePerService = Math.max(1, lot.floor + state.serviceValueBonus);
-      lot.serviceTime = Math.max(.35, 1 - state.chefSpeedBonus * .08);
+      lot.income = 1 + state.floor + state.globalValueLevel;
+      lot.speed = Math.max(.42, 1.18 - state.globalSpeedLevel*0.07);
       renderLots();
       updateUI();
-      showHint('Yeni dükkan açıldı');
-      setCamera(lot.x - 120);
+      setCamera(lot.x - 80);
+      showHint('Yeni market açıldı');
     }
 
     function hireChef(){
-      const lots = getPurchasedLots();
+      const lots = purchasedLots();
       if(!lots.length) return;
-      if(state.money < state.chefHireCost){ showHint('Yetersiz para'); return; }
-      state.money -= state.chefHireCost;
+      if(state.money < state.hireCost){ showHint('Yetersiz para'); return; }
+      state.money -= state.hireCost;
       let target = lots[0];
-      for(const lot of lots){
-        if(lot.chefs < target.chefs) target = lot;
-      }
+      for(const lot of lots) if(lot.chefs < target.chefs) target = lot;
       target.chefs++;
-      state.chefHireCost = Math.floor(state.chefHireCost * 1.42 + 18);
+      state.hireCost = Math.floor(state.hireCost * 1.4 + 20);
       renderLots();
       updateUI();
       showHint('Yeni şef geldi');
-      setCamera(target.x - 120);
     }
 
-    function upgradeServiceValue(){
-      const lots = getPurchasedLots();
-      if(!lots.length) return;
-      if(state.money < state.serviceUpgradeCost){ showHint('Yetersiz para'); return; }
-      state.money -= state.serviceUpgradeCost;
-      state.serviceValueBonus++;
-      lots.forEach(lot=>{
-        lot.serviceLevel++;
-        lot.incomePerService = Math.floor(lot.incomePerService * 1.45 + 1 + state.serviceValueBonus * .4);
-      });
-      state.serviceUpgradeCost = Math.floor(state.serviceUpgradeCost * 1.56 + 40);
+    function upgradeValue(){
+      const lots = purchasedLots();
+      if(state.money < state.valueCost){ showHint('Yetersiz para'); return; }
+      state.money -= state.valueCost;
+      state.globalValueLevel++;
+      lots.forEach(l=>l.income = Math.floor(l.income * 1.45 + 1));
+      state.valueCost = Math.floor(state.valueCost * 1.55 + 35);
       renderLots();
       updateUI();
       showHint('Servis değeri arttı');
     }
 
-    function upgradeChefSpeed(){
-      const lots = getPurchasedLots();
-      if(!lots.length) return;
-      if(state.money < state.chefSpeedCost){ showHint('Yetersiz para'); return; }
-      state.money -= state.chefSpeedCost;
-      state.chefSpeedBonus++;
-      lots.forEach(lot=>{
-        lot.serviceTime = Math.max(.28, lot.serviceTime * 0.9);
-      });
-      state.chefSpeedCost = Math.floor(state.chefSpeedCost * 1.5 + 35);
+    function upgradeSpeed(){
+      const lots = purchasedLots();
+      if(state.money < state.speedCost){ showHint('Yetersiz para'); return; }
+      state.money -= state.speedCost;
+      state.globalSpeedLevel++;
+      lots.forEach(l=>l.speed = Math.max(.35, l.speed * 0.9));
+      state.speedCost = Math.floor(state.speedCost * 1.45 + 28);
       renderLots();
       updateUI();
       showHint('Şefler hızlandı');
     }
 
-    function expandBusiness(){
+    function expand(){
       const next = state.lots.find(l=>!l.purchased);
-      if(!next){ showHint('Tüm arsalar açık'); return; }
+      if(!next){ showHint('Bütün arsalar açık'); return; }
       if(state.money < state.expandCost){ showHint('Yetersiz para'); return; }
       state.money -= state.expandCost;
       buyLot(next.id);
-      state.expandCost = Math.floor(state.expandCost * 1.72 + 90);
+      state.expandCost = Math.floor(state.expandCost * 1.7 + 90);
       updateUI();
     }
 
-    function openNewFloor(){
+    function newFloor(){
       if(state.money < state.floorCost){ showHint('Yetersiz para'); return; }
       state.money -= state.floorCost;
-      state.globalFloor++;
-      getPurchasedLots().forEach(lot=>{
-        lot.floor = state.globalFloor;
-        lot.incomePerService = Math.floor(lot.incomePerService * 1.9 + state.globalFloor);
-      });
-      state.floorCost = Math.floor(state.floorCost * 2.3 + 800);
+      state.floor++;
+      purchasedLots().forEach(l=>{ l.income = Math.floor(l.income * 1.8 + state.floor); });
+      state.floorCost = Math.floor(state.floorCost * 2.2 + 700);
       renderLots();
       updateUI();
       showHint('Yeni kat açıldı');
     }
 
     function spawnCustomer(){
-      const lots = getPurchasedLots();
-      if(!lots.length) return;
-      const lot = lots[randi(0, lots.length - 1)];
-      const targetX = lot.x + 110 + rand(-26, 26);
-      const startX = -60;
-      const shirtColors = ['#4e7bf7','#ef6a55','#33b76f','#8f63ff','#f4b43e','#16a7c9'];
-      const customer = {
+      const openLots = purchasedLots();
+      if(!openLots.length) return;
+      const targetLot = openLots[randi(0, openLots.length-1)];
+      const c = {
         id: state.nextCustomerId++,
-        x: startX,
-        y: 0,
-        targetX,
-        lotId: lot.id,
-        speed: rand(58, 86),
-        wait: rand(.75, 1.8),
-        phase: 'going',
-        shirt: shirtColors[randi(0, shirtColors.length-1)]
+        x: -50,
+        targetX: targetLot.x + 160,
+        speed: rand(70,95),
+        wait: rand(.7,1.5),
+        phase:'going',
+        lotId: targetLot.id,
+        shirt:['#4e7bf7','#ef6a55','#35b86f','#915fff','#f4b43e','#10a8c9'][randi(0,5)]
       };
       const el = document.createElement('div');
       el.className = 'customer';
-      el.innerHTML = `
-        <div class="hair"></div>
-        <div class="head"></div>
-        <div class="body"></div>
-        <div class="leg1"></div>
-        <div class="leg2"></div>
-      `;
-      el.style.setProperty('--shirt', customer.shirt);
+      el.innerHTML = '<div class="hair"></div><div class="head"></div><div class="body"></div><div class="leg1"></div><div class="leg2"></div>';
+      el.style.setProperty('--shirt', c.shirt);
+      c.el = el;
       customersEl.appendChild(el);
-      customer.el = el;
-      state.customers.push(customer);
-    }
-
-    function serviceLot(lot, amount){
-      state.money += amount;
-      const screenX = lot.x + 120 - state.cameraX;
-      const screenY = window.innerHeight - 320;
-      moneyFly(screenX, screenY, '+' + formatMoney(amount) + ' ₺');
-    }
-
-    function updateLots(dt){
-      getPurchasedLots().forEach(lot=>{
-        // GUARANTEED BASE INCOME
-        state.money += lot.chefs * 0.5 * dt;
-
-        lot.progress += dt * lot.chefs;
-        while(lot.progress >= lot.serviceTime){
-          lot.progress -= lot.serviceTime;
-          serviceLot(lot, lot.incomePerService);
-        }
-      });
-    }
-      });
+      state.customers.push(c);
     }
 
     function updateCustomers(dt){
@@ -626,90 +543,86 @@ state.lots[0].serviceTime = 1;
         const c = state.customers[i];
         if(c.phase === 'going'){
           c.x += c.speed * dt;
-          if(c.x >= c.targetX){
-            c.x = c.targetX;
-            c.phase = 'waiting';
-          }
-        } else if(c.phase === 'waiting'){
+          if(c.x >= c.targetX){ c.x = c.targetX; c.phase = 'wait'; }
+        } else if(c.phase === 'wait'){
           c.wait -= dt;
           if(c.wait <= 0){
-            c.phase = 'leaving';
-            const lot = state.lots.find(l=>l.id === c.lotId);
+            c.phase = 'leave';
+            const lot = state.lots.find(l=>l.id===c.lotId);
             if(lot){
-              const pay = Math.max(1, Math.floor(lot.incomePerService * rand(1.1, 1.8)));
+              const pay = Math.max(1, Math.floor(lot.income * rand(1.2,1.9)));
               state.money += pay;
               state.totalCustomers++;
-              const sx = lot.x + 120 - state.cameraX;
-              const sy = window.innerHeight - 360;
-              moneyFly(sx, sy, 'Müşteri +' + formatMoney(pay), '#1f7c27');
+              floatText(lot.x + 145 - state.cameraX, window.innerHeight - 430, '+' + fmt(pay) + ' ₺');
             }
             updateUI();
           }
         } else {
-          c.x -= c.speed * 1.2 * dt;
-          if(c.x < -80){
-            c.el.remove();
-            state.customers.splice(i,1);
-            continue;
-          }
+          c.x -= c.speed * 1.25 * dt;
+          if(c.x < -70){ c.el.remove(); state.customers.splice(i,1); continue; }
         }
         c.el.style.left = c.x + 'px';
-        c.el.style.bottom = '187px';
-        c.el.style.transform = c.phase === 'leaving' ? 'scaleX(-1)' : 'scaleX(1)';
+        c.el.style.transform = c.phase === 'leave' ? 'scaleX(-1)' : 'scaleX(1)';
       }
     }
 
-    function updateCustomerSpawner(dt){
-      const lots = getPurchasedLots();
-      if(!lots.length) return;
+    function updateProduction(dt){
+      purchasedLots().forEach(lot=>{
+        lot.progress += dt * lot.chefs;
+        while(lot.progress >= lot.speed){
+          lot.progress -= lot.speed;
+          state.money += lot.income;
+          floatText(lot.x + 150 - state.cameraX, window.innerHeight - 390, '+' + fmt(lot.income), '#1a9a2f');
+        }
+      });
+    }
+
+    function updateSpawner(dt){
       state.customerSpawnTimer -= dt;
-      const interval = Math.max(.55, 2.6 - lots.length * .28 - state.globalFloor * .09);
+      const open = purchasedLots().length;
+      const interval = Math.max(.55, 2.1 - open * .24 - state.floor * .08);
       if(state.customerSpawnTimer <= 0){
         state.customerSpawnTimer = interval;
         spawnCustomer();
       }
     }
 
-    function gameLoop(now){
+    function loop(now){
       const dt = Math.min(.05, (now - state.lastTime)/1000);
       state.lastTime = now;
-      updateLots(dt);
+      updateProduction(dt);
       updateCustomers(dt);
-      updateCustomerSpawner(dt);
+      updateSpawner(dt);
       updateUI();
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(loop);
     }
 
-    function pointerX(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
-    function onDown(e){
-      state.drag.active = true;
-      state.drag.startX = pointerX(e);
-      state.drag.startCam = state.cameraX;
-    }
-    function onMove(e){
-      if(!state.drag.active) return;
-      const dx = pointerX(e) - state.drag.startX;
-      setCamera(state.drag.startCam - dx);
-    }
-    function onUp(){ state.drag.active = false; }
+    function px(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
+    function down(e){ state.drag.active = true; state.drag.startX = px(e); state.drag.startCam = state.cameraX; }
+    function move(e){ if(!state.drag.active) return; const dx = px(e) - state.drag.startX; setCamera(state.drag.startCam - dx); }
+    function up(){ state.drag.active = false; }
 
-    world.addEventListener('mousedown', onDown);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    world.addEventListener('touchstart', onDown, {passive:true});
-    window.addEventListener('touchmove', onMove, {passive:true});
-    window.addEventListener('touchend', onUp, {passive:true});
+    world.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    world.addEventListener('touchstart', down, {passive:true});
+    window.addEventListener('touchmove', move, {passive:true});
+    window.addEventListener('touchend', up, {passive:true});
+
+    document.getElementById('startBtn').addEventListener('click', ()=>{ menu.style.display = 'none'; showHint('Market açıldı'); });
+    document.getElementById('openUpgradesFromMenu').addEventListener('click', ()=>{ menu.style.display = 'none'; upgradePanel.classList.add('open'); });
+    document.getElementById('upgradeFab').addEventListener('click', ()=> upgradePanel.classList.toggle('open'));
+    document.getElementById('closeUpgrades').addEventListener('click', ()=> upgradePanel.classList.remove('open'));
 
     document.getElementById('hireBtn').addEventListener('click', hireChef);
-    document.getElementById('upgradeBtn').addEventListener('click', upgradeServiceValue);
-    document.getElementById('speedBtn').addEventListener('click', upgradeChefSpeed);
-    document.getElementById('expandBtn').addEventListener('click', expandBusiness);
-    document.getElementById('floorBtn').addEventListener('click', openNewFloor);
+    document.getElementById('valueBtn').addEventListener('click', upgradeValue);
+    document.getElementById('speedBtn').addEventListener('click', upgradeSpeed);
+    document.getElementById('expandBtn').addEventListener('click', expand);
+    document.getElementById('floorBtn').addEventListener('click', newFloor);
 
-    lotsEl.addEventListener('click', (e)=>{
+    lotsEl.addEventListener('click', e=>{
       const btn = e.target.closest('[data-buy-lot]');
-      if(!btn) return;
-      buyLot(Number(btn.dataset.buyLot));
+      if(btn) buyLot(Number(btn.dataset.buyLot));
     });
 
     window.addEventListener('resize', updateWorldWidth);
@@ -717,172 +630,8 @@ state.lots[0].serviceTime = 1;
     renderLots();
     updateUI();
     setCamera(0);
-    requestAnimationFrame(gameLoop);
-    showHint('Para akışı başladı ✔');
-  </script>
-  <style>
-    #mainMenu{
-      position:fixed; inset:0; z-index:120;
-      display:flex; align-items:center; justify-content:center;
-      background:
-        radial-gradient(circle at top, rgba(255,255,255,.18), rgba(255,255,255,0) 35%),
-        linear-gradient(180deg, rgba(7,16,26,.90), rgba(10,22,36,.95));
-      backdrop-filter: blur(8px);
-    }
-    .menu-card{
-      width:min(560px, calc(100% - 28px));
-      background:linear-gradient(180deg,#172432,#0f1720);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:28px;
-      box-shadow:0 20px 50px rgba(0,0,0,.35);
-      padding:24px;
-      color:#fff;
-    }
-    .menu-title{font-size:40px;font-weight:1000;letter-spacing:.4px;margin:0 0 10px;}
-    .menu-sub{opacity:.8;line-height:1.5;margin-bottom:18px;}
-    .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 18px;}
-    .menu-stat{background:rgba(255,255,255,.05);border-radius:18px;padding:14px;}
-    .menu-stat b{display:block;font-size:12px;opacity:.7;margin-bottom:6px;}
-    .menu-stat span{font-size:22px;font-weight:900;}
-    .menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    .menu-btn{
-      border:none;border-radius:18px;padding:16px 14px;font-size:17px;font-weight:900;cursor:pointer;color:#fff;
-      box-shadow:var(--shadow), inset 0 3px 0 rgba(255,255,255,.18);
-    }
-    .menu-btn.play{background:linear-gradient(180deg,#2abf3d,#1b8b2a);}
-    .menu-btn.upgrades{background:linear-gradient(180deg,#2972ff,#1f55bd);}
-
-    #upgradePanel{
-      position:fixed; right:12px; top:88px; bottom:20px; z-index:110; width:min(390px, calc(100% - 24px));
-      transform:translateX(calc(100% + 24px)); transition:transform .28s ease;
-      pointer-events:none;
-    }
-    #upgradePanel.open{transform:translateX(0); pointer-events:auto;}
-    .up-card{
-      height:100%; background:linear-gradient(180deg,#172432,#0f1720); border:1px solid rgba(255,255,255,.08);
-      border-radius:24px; box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:12px;
-    }
-    .up-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
-    .up-title{font-size:26px; font-weight:1000; margin:0;}
-    .close-btn{
-      width:42px;height:42px;border:none;border-radius:14px;cursor:pointer;font-size:22px;font-weight:900;color:#fff;
-      background:linear-gradient(180deg,#314153,#202c39);
-    }
-    .up-sub{opacity:.76;line-height:1.45;font-size:14px;}
-    .up-list{display:grid;gap:10px;overflow:auto;padding-right:4px;}
-    .up-item{
-      background:rgba(255,255,255,.05);border-radius:18px;padding:14px;border:1px solid rgba(255,255,255,.05);
-    }
-    .up-item-title{font-size:17px;font-weight:900;margin-bottom:4px;}
-    .up-item-desc{font-size:13px;opacity:.75;margin-bottom:10px;line-height:1.35;}
-    .up-buy{
-      width:100%;border:none;border-radius:14px;padding:12px 10px;cursor:pointer;color:#fff;font-weight:900;font-size:15px;
-      background:linear-gradient(180deg,#1e8a2a,#176a21);
-    }
-    .up-buy.blue{background:linear-gradient(180deg,#2972ff,#1f55bd);}
-    .up-buy.orange{background:linear-gradient(180deg,#ff9a3d,#dd6e10);}
-    .fab-upgrades{
-      position:fixed; right:16px; bottom:20px; z-index:111; width:64px; height:64px; border:none; border-radius:50%;
-      background:linear-gradient(180deg,#2abf3d,#1b8b2a); color:#fff; font-size:28px; font-weight:1000; cursor:pointer;
-      box-shadow:0 18px 30px rgba(0,0,0,.3), inset 0 3px 0 rgba(255,255,255,.18);
-    }
-      position:fixed; right:16px; bottom:118px; z-index:111; width:64px; height:64px; border:none; border-radius:50%;
-      background:linear-gradient(180deg,#2abf3d,#1b8b2a); color:#fff; font-size:28px; font-weight:1000; cursor:pointer;
-      box-shadow:0 18px 30px rgba(0,0,0,.3), inset 0 3px 0 rgba(255,255,255,.18);
-    }
-    @media (max-width:700px){
-      .menu-title{font-size:32px;}
-      .menu-grid{grid-template-columns:1fr;}
-      .menu-actions{grid-template-columns:1fr;}
-      #upgradePanel{top:82px;bottom:16px;}
-    }
-      .menu-grid{grid-template-columns:1fr;}
-      .menu-actions{grid-template-columns:1fr;}
-      #upgradePanel{top:82px;bottom:88px;}
-    }
-  </style>
-
-  <div id="mainMenu">
-    <div class="menu-card">
-      <h1 class="menu-title">Idle Market Tycoon</h1>
-      <div class="menu-sub">Küçük bir marketle başla, şef kirala, yeni arsalar aç, kat yükselt ve dükkanı dev bir zincire çevir.</div>
-      <div class="menu-grid">
-        <div class="menu-stat"><b>Başlangıç Kasa</b><span>220 ₺</span></div>
-        <div class="menu-stat"><b>Başlangıç Şef</b><span>1</span></div>
-        <div class="menu-stat"><b>Hedef</b><span>Yeni Kat</span></div>
-      </div>
-      <div class="menu-actions">
-        <button class="menu-btn play" id="startGameBtn">Oyuna Başla</button>
-        <button class="menu-btn upgrades" id="menuUpgradeBtn">Yükseltmeleri Aç</button>
-      </div>
-    </div>
-  </div>
-
-  <button class="fab-upgrades" id="toggleUpgradePanel">↑</button>
-
-  <div id="upgradePanel">
-    <div class="up-card">
-      <div class="up-head">
-        <h2 class="up-title">Yükseltmeler</h2>
-        <button class="close-btn" id="closeUpgradePanel">×</button>
-      </div>
-      <div class="up-sub">Bütün ana geliştirmeleri buradan yap. Görüş alanı açık kalsın diye alttaki büyük kutuları kaldırdım; artık hepsi bu panelde.</div>
-      <div class="up-list">
-        <div class="up-item">
-          <div class="up-item-title">Şef Kirala</div>
-          <div class="up-item-desc">En zayıf dükkana yeni bir çalışan ekler. Daha fazla şef = daha fazla pasif gelir.</div>
-          <button class="up-buy blue" id="panelHireBtn">Satın Al</button>
-        </div>
-        <div class="up-item">
-          <div class="up-item-title">Servis Değeri</div>
-          <div class="up-item-desc">Her servis başına kazanılan parayı yükseltir. Uzun oyunda en güçlü geliştirmelerden biri.</div>
-          <button class="up-buy orange" id="panelUpgradeBtn">Yükselt</button>
-        </div>
-        <div class="up-item">
-          <div class="up-item-title">Şef Hızı</div>
-          <div class="up-item-desc">Şeflerin çalışma süresini azaltır. Aynı sürede daha çok üretim yaparlar.</div>
-          <button class="up-buy" id="panelSpeedBtn">Hızlandır</button>
-        </div>
-        <div class="up-item">
-          <div class="up-item-title">Yeni Alan Aç</div>
-          <div class="up-item-desc">Boş arsayı markete çevirir. Harita genişler, yeni müşteri hedefleri açılır.</div>
-          <button class="up-buy" id="panelExpandBtn">Alan Aç</button>
-        </div>
-        <div class="up-item">
-          <div class="up-item-title">Yeni Kat</div>
-          <div class="up-item-desc">Bütün açık marketleri bir üst kata geçirir. Gelir çarpanı ciddi artar.</div>
-          <button class="up-buy blue" id="panelFloorBtn">Kat Aç</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const mainMenu = document.getElementById('mainMenu');
-    const upgradePanel = document.getElementById('upgradePanel');
-    const toggleUpgradePanel = document.getElementById('toggleUpgradePanel');
-
-    document.getElementById('startGameBtn').addEventListener('click', ()=>{
-      mainMenu.style.display = 'none';
-      showHint('Oyun başladı');
-    });
-
-    function openUpgradePanel(){ upgradePanel.classList.add('open'); }
-    function closeUpgradePanel(){ upgradePanel.classList.remove('open'); }
-    function togglePanel(){ upgradePanel.classList.toggle('open'); }
-
-    document.getElementById('menuUpgradeBtn').addEventListener('click', ()=>{
-      mainMenu.style.display = 'none';
-      openUpgradePanel();
-    });
-    toggleUpgradePanel.addEventListener('click', togglePanel);
-    document.getElementById('closeUpgradePanel').addEventListener('click', closeUpgradePanel);
-
-    document.getElementById('panelHireBtn').addEventListener('click', hireChef);
-    document.getElementById('panelUpgradeBtn').addEventListener('click', upgradeServiceValue);
-    document.getElementById('panelSpeedBtn').addEventListener('click', upgradeChefSpeed);
-    document.getElementById('panelExpandBtn').addEventListener('click', expandBusiness);
-    document.getElementById('panelFloorBtn').addEventListener('click', openNewFloor);
+    requestAnimationFrame(loop);
+    showHint('Bu sürüm referansa daha yakın');
   </script>
 </body>
 </html>
